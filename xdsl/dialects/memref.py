@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Annotated, TypeVar, Optional, List, TypeAlias
 
+from xdsl.dialects.arith import Constant
 from xdsl.dialects.builtin import (IntegerAttr, IndexType, ArrayAttr,
                                    IntegerType, FlatSymbolRefAttr, StringAttr,
                                    DenseIntOrFPElementsAttr)
@@ -95,7 +96,7 @@ class Load(Operation):
 
     @staticmethod
     def get(ref: SSAValue | Operation,
-            indices: List[SSAValue | Operation]) -> Load:
+            indices: List[SSAValue | Operation | int]) -> Load:
         return Load.build(operands=[ref, indices],
                           result_types=[SSAValue.get(ref).typ.element_type])
 
@@ -169,7 +170,7 @@ class Alloca(Operation):
     @staticmethod
     def get(return_type: Attribute,
             alignment: int,
-            shape: Optional[List[int | AnyIntegerAttr]] = None) -> Alloca:
+            shape: Optional[List[int | AnyIntegerAttr | Constant]] = None) -> Alloca:
         if shape is None:
             shape = [1]
         return Alloca.build(operands=[[], []],

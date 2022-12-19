@@ -72,11 +72,11 @@ def test_memref_store_i32_with_dimensions():
     assert store.indices[1] is index2
     assert store.value is i32_ssa_value
 
+    import pdb;pdb.set_trace()
 
 def test_memref_alloc():
-    my_i32 = IntegerType.from_width(32)
-    alloc0 = Alloc.get(my_i32, 64, [3, 1, 2])
-    alloc1 = Alloc.get(my_i32, 64)
+    alloc0 = Alloc.get(i32, 64, [3, 1, 2])
+    alloc1 = Alloc.get(i32, 64)
 
     assert alloc0.dynamic_sizes == []
     assert type(alloc0.results[0]) is OpResult

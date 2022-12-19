@@ -126,6 +126,8 @@ class SSAValue(ABC):
         if isinstance(arg, SSAValue):
             return arg
         if isinstance(arg, Operation):
+            while isinstance(arg.results, Operation):
+                arg = arg.results
             if len(arg.results) == 1:
                 return arg.results[0]
             raise ValueError(
