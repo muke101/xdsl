@@ -2,8 +2,10 @@ from xdsl.ir import Block, Region, SSAValue
 from xdsl.dialects.arith import Constant, Mulf, Addf
 from xdsl.dialects.affine import For
 from xdsl.dialects.builtin import i32, f32, IntegerType, IntAttr
-from xdsl.dialects.memref import Alloc, Load, Store, MemRefType
+from xdsl.dialects.memref import Alloc, Load, Store, MemRefType, Alloca
 
+
+from xdsl.printer import Printer
 
 def test_combo():
     cst = Constant.from_float_and_width(0.0, f32)
@@ -27,13 +29,13 @@ def test_combo():
 
     block0 = Block.from_ops([mul5])
     region0 = Region.from_block_list([block0])
-    import pdb;pdb.set_trace()
+    # import pdb;pdb.set_trace()
 
 
 
 
 
-def atest_matmul():
+def test_matmul():
     """
     Test adapted from:
     https://github.com/wehu/c-mlir#readme
@@ -73,6 +75,9 @@ def atest_matmul():
     for0 = For.from_region([], 0, 1, region0)
 
     import pdb;pdb.set_trace()
+
+    printer = Printer()
+    
     for1 = For.from_region([j], 0, 1, region0)
     for2 = For.from_region([k], 0, 1, region0)
 
