@@ -33,7 +33,9 @@ class Test_integer_arith_construction:
         ["eq", "ne", "slt", "sle", "ult", "ule", "ugt", "uge"],
     )
     def test_Cmpi_from_mnemonic(self, input):
-        _ = Cmpi.from_mnemonic(self.a, self.b, input)
+        cond = Cmpi.from_mnemonic(self.a, self.b, input)
+        assert cond.operands[0].op is self.a
+        assert cond.operands[1].op is self.b
 
 
 class Test_float_arith_construction:

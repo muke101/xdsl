@@ -11,7 +11,7 @@ from xdsl.irdl import (VarOpResult, VarOperand, irdl_op_definition, Operand,
 class If(Operation):
     name: str = "scf.if"
     output: Annotated[VarOpResult, AnyAttr()]
-    cond: Annotated[Operand, IntegerType.from_width(1)]
+    cond: Annotated[Operand, AnyAttr()]
 
     true_region: Region
     # TODO this should be optional under certain conditions
