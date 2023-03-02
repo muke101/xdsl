@@ -16,7 +16,7 @@ def test_opt():
 
 
 def test_empty_program():
-    filename = 'tests/xdsl_opt/empty_program.xdsl'
+    filename = 'tests/xdsl_opt/empty_program.mlir'
     opt = xDSLOptMain(args=[filename])
 
     f = StringIO("")
@@ -65,7 +65,7 @@ def test_wrong_target():
 
 
 def test_print_to_file():
-    filename_in = 'tests/xdsl_opt/empty_program.xdsl'
+    filename_in = 'tests/xdsl_opt/empty_program.mlir'
     filename_out = 'tests/xdsl_opt/empty_program.out'
     opt = xDSLOptMain(args=[filename_in, '-o', filename_out])
 
@@ -78,7 +78,7 @@ def test_print_to_file():
 
 def test_operation_deletion():
     filename_in = 'tests/xdsl_opt/constant_program.xdsl'
-    filename_out = 'tests/xdsl_opt/empty_program.xdsl'
+    filename_out = 'tests/xdsl_opt/empty_program.mlir'
 
     class xDSLOptMainPass(xDSLOptMain):
 

@@ -227,7 +227,7 @@ class xDSLOptMain:
             printer.print_op(prog)
 
         def _output_mlir(prog: ModuleOp, output: IO[str]):
-            printer = Printer(stream=output, target=Printer.Target.MLIR)
+            printer = Printer(stream=output)
             printer.print_op(prog)
 
         def _output_irdl(prog: ModuleOp, output: IO[str]):

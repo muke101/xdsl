@@ -12,7 +12,6 @@ from xdsl.printer import Printer
 
 
 def test_mpi_combo():
-    printer = Printer(target=Printer.Target.MLIR)
 
     module = ModuleOp.from_region_or_ops([
         func.FuncOp.from_callable('main', [], [], lambda: [
@@ -62,10 +61,7 @@ def test_mpi_combo():
 }) : () -> ()
 """
 
-    assert_print_op(module,
-                    expected,
-                    target=Printer.Target.MLIR,
-                    diagnostic=None)
+    assert_print_op(module, expected, diagnostic=None)
 
 
 def test_mpi_baseop():

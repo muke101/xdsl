@@ -93,7 +93,7 @@ def print_as_mlir_and_compare(test_prog: str, expected: str):
     module = parser.parse_operation()
 
     res = StringIO()
-    printer = Printer(target=Printer.Target.MLIR, stream=res)
+    printer = Printer(stream=res)
     printer.print_op(module)
 
     # Remove all whitespace from the expected string.

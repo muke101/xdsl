@@ -36,7 +36,7 @@ def test_operation_deletion():
 }"""
 
     expected = \
-"""builtin.module() {}"""
+""""builtin.module"() ({}) : () -> ()"""
 
     def transformation(module: ModuleOp, rewriter: Rewriter) -> None:
         constant_op = module.ops[0]
@@ -53,11 +53,12 @@ def test_replace_op_one_op():
 %1 : !i32 = arith.addi(%0 : !i32, %0 : !i32)
 }"""
 
-    expected = \
-"""builtin.module() {
-  %0 : !i32 = arith.constant() ["value" = 43 : !i32]
-  %1 : !i32 = arith.addi(%0 : !i32, %0 : !i32)
-}"""
+    expected = """
+"builtin.module"() ({
+  %0 = "arith.constant"() {"value" = 43 : i32} : () -> i32
+  %1 = "arith.addi"(%0, %0) : (i32, i32) -> i32
+}) : () -> ()
+"""
 
     def transformation(module: ModuleOp, rewriter: Rewriter) -> None:
         constant_op = module.ops[0]
@@ -75,12 +76,13 @@ def test_replace_op_multiple_op():
 %1 : !i32 = arith.addi(%0 : !i32, %0 : !i32)
 }"""
 
-    expected = \
-"""builtin.module() {
-  %0 : !i32 = arith.constant() ["value" = 1 : !i32]
-  %1 : !i32 = arith.addi(%0 : !i32, %0 : !i32)
-  %2 : !i32 = arith.addi(%1 : !i32, %1 : !i32)
-}"""
+    expected = """
+"builtin.module"() ({
+  %0 = "arith.constant"() {"value" = 1 : i32} : () -> i32
+  %1 = "arith.addi"(%0, %0) : (i32, i32) -> i32
+  %2 = "arith.addi"(%1, %1) : (i32, i32) -> i32
+}) : () -> ()
+"""
 
     def transformation(module: ModuleOp, rewriter: Rewriter) -> None:
         constant_op = module.ops[0]
@@ -101,11 +103,12 @@ def test_replace_op_new_results():
 %2 : !i32 = arith.muli(%1 : !i32, %1 : !i32)
 }"""
 
-    expected = \
-"""builtin.module() {
-  %0 : !i32 = arith.constant() ["value" = 2 : !i32]
-  %1 : !i32 = arith.muli(%0 : !i32, %0 : !i32)
-}"""
+    expected = """
+"builtin.module"() ({
+  %0 = "arith.constant"() {"value" = 2 : i32} : () -> i32
+  %1 = "arith.muli"(%0, %0) : (i32, i32) -> i32
+}) : () -> ()
+"""
 
     def transformation(module: ModuleOp, rewriter: Rewriter) -> None:
         add_op = module.ops[1]
@@ -125,12 +128,13 @@ scf.if(%0 : !i1) {
 }
 }"""
 
-    expected = \
-"""builtin.module() {
-  %0 : !i1 = arith.constant() ["value" = true]
-  %1 : !i32 = arith.constant() ["value" = 2 : !i32]
-  scf.if(%0 : !i1) {}
-}"""
+    expected = """
+"builtin.module"() ({
+  %0 = "arith.constant"() {"value" = true} : () -> i1
+  %1 = "arith.constant"() {"value" = 2 : i32} : () -> i32
+  "scf.if"(%0) ({}) : (i1) -> ()
+}) : () -> ()
+"""
 
     def transformation(module: ModuleOp, rewriter: Rewriter) -> None:
         if_op = module.ops[1]
@@ -152,12 +156,13 @@ scf.if(%0 : !i1) {
 }
 }"""
 
-    expected = \
-"""builtin.module() {
-  %0 : !i1 = arith.constant() ["value" = true]
-  %1 : !i32 = arith.constant() ["value" = 2 : !i32]
-  scf.if(%0 : !i1) {}
-}"""
+    expected = """
+"builtin.module"() ({
+  %0 = "arith.constant"() {"value" = true} : () -> i1
+  %1 = "arith.constant"() {"value" = 2 : i32} : () -> i32
+  "scf.if"(%0) ({}) : (i1) -> ()
+}) : () -> ()
+"""
 
     def transformation(module: ModuleOp, rewriter: Rewriter) -> None:
         if_op = module.ops[1]
@@ -178,12 +183,13 @@ scf.if(%0 : !i1) {
 }
 }"""
 
-    expected = \
-"""builtin.module() {
-  %0 : !i1 = arith.constant() ["value" = true]
-  %1 : !i32 = arith.constant() ["value" = 2 : !i32]
-  scf.if(%0 : !i1) {}
-}"""
+    expected = """
+"builtin.module"() ({
+  %0 = "arith.constant"() {"value" = true} : () -> i1
+  %1 = "arith.constant"() {"value" = 2 : i32} : () -> i32
+  "scf.if"(%0) ({}) : (i1) -> ()
+}) : () -> ()
+"""
 
     def transformation(module: ModuleOp, rewriter: Rewriter) -> None:
         if_op = module.ops[1]
@@ -202,12 +208,13 @@ def test_insert_block():
   %0 : !i1 = arith.constant() ["value" = true]
 }"""
 
-    expected = \
-"""builtin.module() {
+    expected = """
+"builtin.module"() ({
 ^0:
 ^1:
-  %0 : !i1 = arith.constant() ["value" = true]
-}"""
+  %0 = "arith.constant"() {"value" = true} : () -> i1
+}) : () -> ()
+"""
 
     def transformation(module: ModuleOp, rewriter: Rewriter) -> None:
         module.regions[0].insert_block(Block(), 0)
@@ -222,12 +229,13 @@ def test_insert_block2():
   %0 : !i1 = arith.constant() ["value" = true]
 }"""
 
-    expected = \
-"""builtin.module() {
+    expected = """
+"builtin.module"() ({
 ^0:
-  %0 : !i1 = arith.constant() ["value" = true]
+  %0 = "arith.constant"() {"value" = true} : () -> i1
 ^1:
-}"""
+}) : () -> ()
+"""
 
     def transformation(module: ModuleOp, rewriter: Rewriter) -> None:
         module.regions[0].insert_block(Block(), 1)
@@ -242,12 +250,13 @@ def test_insert_block_before():
   %0 : !i1 = arith.constant() ["value" = true]
 }"""
 
-    expected = \
-"""builtin.module() {
+    expected = """
+"builtin.module"() ({
 ^0:
 ^1:
-  %0 : !i1 = arith.constant() ["value" = true]
-}"""
+  %0 = "arith.constant"() {"value" = true} : () -> i1
+}) : () -> ()
+"""
 
     def transformation(module: ModuleOp, rewriter: Rewriter) -> None:
         rewriter.insert_block_before(Block(), module.regions[0].blocks[0])
@@ -262,12 +271,13 @@ def test_insert_block_after():
   %0 : !i1 = arith.constant() ["value" = true]
 }"""
 
-    expected = \
-"""builtin.module() {
+    expected = """
+"builtin.module"() ({
 ^0:
-  %0 : !i1 = arith.constant() ["value" = true]
+  %0 = "arith.constant"() {"value" = true} : () -> i1
 ^1:
-}"""
+}) : () -> ()
+"""
 
     def transformation(module: ModuleOp, rewriter: Rewriter) -> None:
         rewriter.insert_block_after(Block(), module.regions[0].blocks[0])
@@ -289,6 +299,13 @@ def test_preserve_naming_single_op():
   %0 : !i32 = arith.addi(%i : !i32, %i : !i32)
 }"""
 
+    expected = """
+"builtin.module"() ({
+  %i = "arith.constant"() {"value" = 1 : i32} : () -> i32
+  %0 = "arith.addi"(%i, %i) : (i32, i32) -> i32
+}) : () -> ()
+"""
+
     def transformation(module: ModuleOp, rewriter: Rewriter) -> None:
         constant_op = module.ops[0]
         new_constant = Constant.from_int_and_width(1, i32)
@@ -306,12 +323,13 @@ def test_preserve_naming_multiple_ops():
     %1 : !i32 = arith.addi(%i : !i32, %i : !i32)
 }"""
 
-    expected = \
-"""builtin.module() {
-  %i : !i32 = arith.constant() ["value" = 1 : !i32]
-  %i1 : !i32 = arith.addi(%i : !i32, %i : !i32)
-  %0 : !i32 = arith.addi(%i1 : !i32, %i1 : !i32)
-}"""
+    expected = """
+"builtin.module"() ({
+  %i = "arith.constant"() {"value" = 1 : i32} : () -> i32
+  %i1 = "arith.addi"(%i, %i) : (i32, i32) -> i32
+  %0 = "arith.addi"(%i1, %i1) : (i32, i32) -> i32
+}) : () -> ()
+"""
 
     def transformation(module: ModuleOp, rewriter: Rewriter) -> None:
         constant_op = module.ops[0]
@@ -330,10 +348,11 @@ def test_no_result_rewriter():
    func.return()
 }"""
 
-    expected = \
-"""builtin.module() {
-  scf.yield()
-}"""
+    expected = """
+"builtin.module"() ({
+  "scf.yield"() : () -> ()
+}) : () -> ()
+"""
 
     def transformation(module: ModuleOp, rewriter: Rewriter) -> None:
         return_op = module.ops[0]
