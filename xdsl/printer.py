@@ -484,8 +484,10 @@ class Printer:
             return
 
         # For the MLIR target, we may print differently some attributes
-        self.print("!" if isinstance(attribute, MLIRType) else "#")
-        self.print(attribute.name)
+        if isinstance(attribute, MLIRType):
+            self.print(attribute.name)
+        else:
+            self.print(f'#"{attribute.name}"')
 
         if isinstance(attribute, Data):
             self.print("<")
@@ -496,7 +498,16 @@ class Printer:
 
         assert isinstance(attribute, ParametrizedAttribute)
 
-        attribute.print_parameters(self)
+        # attribute.print_parameters(self)
+        # Print parametrized attribute with default formatting
+        # if self.print_generic_format:
+
+        # We always want to print generic format?
+        self.print_string("<")
+        self.print_list(attribute.parameters, self.print_attribute)
+        self.print_string(">")
+        # self.print_paramattr_parameters(attribute.parameters,
+        #                                 always_print_brackets=True)
         return
 
     def print_successors(self, successors: List[Block]):
