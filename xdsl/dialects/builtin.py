@@ -472,38 +472,40 @@ class TupleType(ParametrizedAttribute):
 
 
 @irdl_attr_definition
-class VectorType(Generic[AttributeInvT], ParametrizedAttribute, MLIRType):
+class VectorType(Generic[AttributeCovT], ParametrizedAttribute, MLIRType):
     name = "vector"
 
-    shape: ParameterDef[ArrayAttr[AnyIntegerAttr]]
-    element_type: ParameterDef[AttributeInvT]
+    shape: ParameterDef[ArrayAttr[IntAttr]]
+    element_type: ParameterDef[AttributeCovT]
+
+    def __init__(self, shape: Iterable[int | IntAttr]
+                 | ArrayAttr[IntAttr], element_type: AttributeCovT):
+        if not isinstance(shape, ArrayAttr):
+            shape = ArrayAttr([
+                IntAttr(dim) if isinstance(dim, int) else dim for dim in shape
+            ])
+        super().__init__([shape, element_type])
 
     def get_num_dims(self) -> int:
         return len(self.shape.data)
 
     def get_shape(self) -> List[int]:
-        return [i.value.data for i in self.shape.data]
+        return [i.data for i in self.shape.data]
 
     @staticmethod
+    @deprecated_constructor
     def from_element_type_and_shape(
-        referenced_type: AttributeInvT,
-        shape: Sequence[int | IntegerAttr[IndexType]]
-    ) -> VectorType[AttributeInvT]:
-
-        return VectorType([
-            ArrayAttr([
-                IntegerAttr[IntegerType].from_index_int_value(d) if isinstance(
-                    d, int) else d for d in shape
-            ]), referenced_type
-        ])
+            referenced_type: AttributeInvT,
+            shape: Sequence[int | IntAttr]) -> VectorType[AttributeInvT]:
+        return VectorType(shape, referenced_type)
 
     @staticmethod
+    @deprecated_constructor
     def from_params(
         referenced_type: AttributeInvT,
-        shape: ArrayAttr[IntegerAttr[IntegerType]] = ArrayAttr(
-            [IntegerAttr.from_int_and_width(1, 64)])
+        shape: ArrayAttr[IntAttr] = ArrayAttr([IntAttr(1)])
     ) -> VectorType[AttributeInvT]:
-        return VectorType([shape, referenced_type])
+        return VectorType(shape, referenced_type)
 
 
 AnyVectorType: TypeAlias = VectorType[Attribute]
@@ -516,6 +518,14 @@ class TensorType(Generic[AttributeCovT], ParametrizedAttribute, MLIRType):
     shape: ParameterDef[ArrayAttr[AnyIntegerAttr]]
     element_type: ParameterDef[AttributeCovT]
 
+    def __init__(self, shape: Iterable[int | IntAttr]
+                 | ArrayAttr[IntAttr], element_type: AttributeCovT):
+        if not isinstance(shape, ArrayAttr):
+            shape = ArrayAttr([
+                IntAttr(dim) if isinstance(dim, int) else dim for dim in shape
+            ])
+        super().__init__([shape, element_type])
+
     def get_num_dims(self) -> int:
         return len(self.shape.data)
 
@@ -523,26 +533,19 @@ class TensorType(Generic[AttributeCovT], ParametrizedAttribute, MLIRType):
         return [i.value.data for i in self.shape.data]
 
     @staticmethod
+    @deprecated_constructor
     def from_type_and_list(
         referenced_type: AttributeInvT,
-        shape: Sequence[int | IntegerAttr[IndexType]] | None = None
+        shape: Sequence[int | IntAttr] | None = None
     ) -> TensorType[AttributeInvT]:
-        if shape is None:
-            shape = [1]
-        return TensorType([
-            ArrayAttr([
-                IntegerAttr[IntegerType].from_index_int_value(d) if isinstance(
-                    d, int) else d for d in shape
-            ]), referenced_type
-        ])
+        return TensorType([1] if shape is None else shape, referenced_type)
 
     @staticmethod
     def from_params(
         referenced_type: AttributeInvT,
-        shape: AnyArrayAttr = AnyArrayAttr(
-            [IntegerAttr.from_int_and_width(1, 64)])
+        shape: ArrayAttr[IntAttr] = ArrayAttr([IntAttr(1)])
     ) -> TensorType[AttributeInvT]:
-        return TensorType([shape, referenced_type])
+        return TensorType(shape, referenced_type)
 
 
 AnyTensorType: TypeAlias = TensorType[Attribute]
