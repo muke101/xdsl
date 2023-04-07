@@ -1766,6 +1766,92 @@ class BaseParser(ABC):
         self._synchronize_lexer_and_tokenizer()
         return attr_def(name.text, False, contents)
 
+    _TensorLiteralElement = tuple[int | float
+                                  | tuple[int | float, int | float], Span]
+
+    def _parse_tensor_literal_element(self) -> _TensorLiteralElement:
+        """
+        Parse a tensor literal element, which can be a boolean, an integer
+        literal, a float literal, or a complex literal.
+        """
+        # boolean case
+        if self._current_token.text == 'true':
+            token = self._consume_token(Token.Kind.BARE_IDENT)
+            return 1, token.span
+        if self._current_token.text == 'false':
+            token = self._consume_token(Token.Kind.BARE_IDENT)
+            return 0, token.span
+
+        # complex case
+        if (begin_token :=
+                self._parse_optional_token(Token.Kind.L_PAREN)) is not None:
+            real = self._parse_tensor_literal_element()
+            self.parse_punctuation(',', ' in complex literal')
+            imag = self._parse_tensor_literal_element()
+            end_token = self._parse_token(Token.Kind.R_PAREN,
+                                          "Expected ')' in complex literal")
+            span = Span(begin_token.span.start, end_token.span.end,
+                        self.lexer.input)
+            if isinstance(real[0], tuple):
+                raise ParseError(real[1], "Cannot nest complex literals")
+            if isinstance(imag[0], tuple):
+                raise ParseError(imag[1], "Cannot nest complex literals")
+            return (real[0], imag[0]), span
+
+        # checking for negation
+        is_negative = False
+        if self._parse_optional_token(Token.Kind.MINUS) is not None:
+            is_negative = True
+
+        if self._current_token.kind == Token.Kind.FLOAT_LIT:
+            token = self._consume_token(Token.Kind.FLOAT_LIT)
+            value = token.get_float_value()
+            if is_negative:
+                value = -value
+            return value, token.span
+        if self._current_token.kind == Token.Kind.INTEGER_LIT:
+            token = self._consume_token(Token.Kind.INTEGER_LIT)
+            value = token.get_int_value()
+            if is_negative:
+                value = -value
+            return value, token.span
+
+        self.raise_error(
+            "Expected either a float, integer, or complex literal")
+
+    _TensorLiteral = list[_TensorLiteralElement] | list['_TensorLiteral']
+
+    def _parse_tensor_literal_list(self) -> tuple[_TensorLiteral, list[int]]:
+        element_dims: list[int] | None = None
+
+        def parse_element_or_list(
+        ) -> tuple[BaseParser._TensorLiteral
+                   | BaseParser._TensorLiteralElement, list[int]]:
+            nonlocal element_dims
+            if self._current_token.kind == Token.Kind.L_SQUARE:
+                element, shape = self._parse_tensor_literal_list()
+            else:
+                element = self._parse_tensor_literal_element()
+                shape = []
+            if element_dims is None:
+                element_dims = shape
+            else:
+                if element_dims != shape:
+                    self.raise_error(
+                        "Tensor literal has inconsistent ranks between elements"
+                    )
+            return element, shape
+
+        res = self.parse_comma_separated_list(
+            self.Delimiter.SQUARE,
+            parse_element_or_list,
+        )
+        if len(res) == 0:
+            return [], []
+        shape: list[int] = [len(res)] + res[0][1]
+        values = cast(BaseParser._TensorLiteral, [r[0] for r in res])
+        return values, shape
+
     def _parse_builtin_dense_attr_args(self) -> Iterable[int | float]:
         """
         Dense attribute params must be:
