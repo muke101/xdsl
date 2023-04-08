@@ -21,7 +21,7 @@ from xdsl.dialects.builtin import (
     AnyVectorType, DenseResourceAttr, DictionaryAttr, Float16Type, Float32Type,
     Float64Type, FloatAttr, FunctionType, IndexType, IntegerType, Signedness,
     StringAttr, IntegerAttr, ArrayAttr, TensorType, UnrankedTensorType,
-    UnregisteredAttr, VectorOrTensorOf, VectorType, SymbolRefAttr,
+    UnregisteredAttr, RankedVectorOrTensorOf, VectorType, SymbolRefAttr,
     DenseArrayBase, DenseIntOrFPElementsAttr, OpaqueAttr, NoneAttr, ModuleOp,
     UnitAttr, i64, StridedLayoutAttr, ComplexType)
 from xdsl.ir import (SSAValue, Block, Callable, Attribute, Operation, Region,
@@ -1641,19 +1641,62 @@ class BaseParser(ABC):
             return parsers.get(name.text, not_implemented)(name)
 
     def _parse_builtin_dense_attr(self, _name: Span) -> Attribute | None:
-        err_msg = "Malformed dense attribute, format must be (`dense<` array-attr `>:` type)"  # noqa
-        self.parse_characters("<", err_msg)
-        info = list(self._parse_builtin_dense_attr_args())
-        self.parse_characters(">", err_msg)
-        self.parse_characters(":", err_msg)
+        self._synchronize_lexer_and_tokenizer()
+        self.parse_punctuation('<', ' in dense attribute')
+
+        # Parse the data as a list of elements and an optional shape, if given.
+        # If there was only given a single element, then there is no shape.
+        data: tuple[list[BaseParser._TensorLiteralElement],
+                    list[int]] | BaseParser._TensorLiteralElement
+        if self._current_token.text == '[':
+            data = self._parse_tensor_literal_list()
+            data_values = data[0]
+        else:
+            data = self._parse_tensor_literal_element()
+            data_values = [data]
+        self.parse_punctuation('>', ' in dense attribute')
+
+        # Parse the dense type.
+        self.parse_punctuation(':', ' in dense attribute')
+        self._synchronize_lexer_and_tokenizer()
         type = self.expect(self.try_parse_type,
-                           "Dense attribute must be typed!")
+                           'Dense attribute must be typed!')
+        self._synchronize_lexer_and_tokenizer()
 
-        if not isa(type, VectorOrTensorOf[Attribute]):
+        # Check that the type is correct.
+        if not isa(type, RankedVectorOrTensorOf[Attribute]):
             self.raise_error(
-                "Expected vector or tensor type for dense attribute")
+                'Expected vector or tensor type for dense attribute')
 
-        return DenseIntOrFPElementsAttr.from_list(type, info)
+        # Check that the shape matches the data when given a shaped data.
+        type_shape = [dim.value.data for dim in type.shape.data]
+        if isinstance(data, tuple) and type_shape != data[1]:
+            self.raise_error(
+                f'Shape mismatch in dense literal. Expected {type_shape} '
+                f'shape from the type, but got {type_shape} shape.')
+
+        # Check that the data is valid for the expected element type.
+        if isinstance(type.element_type, IntegerType | IndexType):
+            if any(not isinstance((value := x)[0], int) for x in data_values):
+                self.raise_error(
+                    'Expected integer literal for integer dense attribute',
+                    value[1])
+            dense_data = ArrayAttr(
+                IntegerAttr(cast(int, x[0]), type.element_type)
+                for x in data_values)
+        elif isinstance(type.element_type, AnyFloat):
+            if any(not isinstance((value := x)[0], int | float)
+                   for x in data_values):
+                self.raise_error(
+                    'Expected integer or float literal for float dense attribute',
+                    value[1])
+            dense_data = ArrayAttr(
+                AnyFloatAttr(float(cast(int | float, x[0])), type.element_type)
+                for x in data_values)
+        elif isinstance(type.element_type, ComplexType):
+            self.raise_error('Complex dense attributes are not supported')
+
+        return DenseIntOrFPElementsAttr.from_list(type, dense_data)
 
     def _parse_builtin_opaque_attr(self, _name: Span):
         self.parse_characters("<", "Opaque attribute must be parametrized")
@@ -1819,19 +1862,17 @@ class BaseParser(ABC):
         self.raise_error(
             "Expected either a float, integer, or complex literal")
 
-    _TensorLiteral = list[_TensorLiteralElement] | list['_TensorLiteral']
-
-    def _parse_tensor_literal_list(self) -> tuple[_TensorLiteral, list[int]]:
+    def _parse_tensor_literal_list(
+            self) -> tuple[list[_TensorLiteralElement], list[int]]:
         element_dims: list[int] | None = None
 
         def parse_element_or_list(
-        ) -> tuple[BaseParser._TensorLiteral
-                   | BaseParser._TensorLiteralElement, list[int]]:
+        ) -> tuple[list[BaseParser._TensorLiteralElement], list[int]]:
             nonlocal element_dims
             if self._current_token.kind == Token.Kind.L_SQUARE:
                 element, shape = self._parse_tensor_literal_list()
             else:
-                element = self._parse_tensor_literal_element()
+                element = [self._parse_tensor_literal_element()]
                 shape = []
             if element_dims is None:
                 element_dims = shape
@@ -1849,7 +1890,7 @@ class BaseParser(ABC):
         if len(res) == 0:
             return [], []
         shape: list[int] = [len(res)] + res[0][1]
-        values = cast(BaseParser._TensorLiteral, [r[0] for r in res])
+        values = [elem for sub_list in res for elem in sub_list[0]]
         return values, shape
 
     def _parse_builtin_dense_attr_args(self) -> Iterable[int | float]:
