@@ -1809,8 +1809,24 @@ class BaseParser(ABC):
         self._synchronize_lexer_and_tokenizer()
         return attr_def(name.text, False, contents)
 
-    _TensorLiteralElement = tuple[int | float
-                                  | tuple[int | float, int | float], Span]
+    @dataclass
+    class _TensorLiteralElement:
+        """
+        The representation of a tensor literal element used during parsing.
+        It is either an integer, float, boolean, float complex, or integer
+        complex. It also has a check if the element has a negative sign (it is
+        already applied to the value).
+        This class is used to parse a tensor literal before the tensor literal
+        type is known
+        """
+        is_negative: bool
+        value: int | float | bool | tuple[Any, Any]
+        """
+        An integer, float, boolean, integer complex, or float complex value.
+        The tuple should be of type `_TensorLiteralElement`, but python does
+        not allow classes to self-reference.
+        """
+        span: Span
 
     def _parse_tensor_literal_element(self) -> _TensorLiteralElement:
         """
@@ -1820,10 +1836,10 @@ class BaseParser(ABC):
         # boolean case
         if self._current_token.text == 'true':
             token = self._consume_token(Token.Kind.BARE_IDENT)
-            return 1, token.span
+            return self._TensorLiteralElement(False, True, token.span)
         if self._current_token.text == 'false':
             token = self._consume_token(Token.Kind.BARE_IDENT)
-            return 0, token.span
+            return self._TensorLiteralElement(False, False, token.span)
 
         # complex case
         if (begin_token :=
@@ -1835,35 +1851,45 @@ class BaseParser(ABC):
                                           "Expected ')' in complex literal")
             span = Span(begin_token.span.start, end_token.span.end,
                         self.lexer.input)
-            if isinstance(real[0], tuple):
-                raise ParseError(real[1], "Cannot nest complex literals")
-            if isinstance(imag[0], tuple):
-                raise ParseError(imag[1], "Cannot nest complex literals")
-            return (real[0], imag[0]), span
+            if isinstance(real.value, tuple | bool):
+                raise ParseError(
+                    real.span, "Complex literals should only contain "
+                    "integer and float literals.")
+            if isinstance(imag.value, tuple | bool):
+                raise ParseError(
+                    real.span, "Complex literals should only contain "
+                    "integer and float literals.")
+            return self._TensorLiteralElement(False, (real, imag), span)
 
         # checking for negation
         is_negative = False
         if self._parse_optional_token(Token.Kind.MINUS) is not None:
             is_negative = True
 
+        # Integer and float case
         if self._current_token.kind == Token.Kind.FLOAT_LIT:
             token = self._consume_token(Token.Kind.FLOAT_LIT)
             value = token.get_float_value()
-            if is_negative:
-                value = -value
-            return value, token.span
-        if self._current_token.kind == Token.Kind.INTEGER_LIT:
+        elif self._current_token.kind == Token.Kind.INTEGER_LIT:
             token = self._consume_token(Token.Kind.INTEGER_LIT)
             value = token.get_int_value()
-            if is_negative:
-                value = -value
-            return value, token.span
+        else:
+            self.raise_error(
+                "Expected either a float, integer, or complex literal")
 
-        self.raise_error(
-            "Expected either a float, integer, or complex literal")
+        if is_negative:
+            value = -value
+        return self._TensorLiteralElement(is_negative, value, token.span)
 
     def _parse_tensor_literal_list(
             self) -> tuple[list[_TensorLiteralElement], list[int]]:
+        """
+        Parse a tensor literal, which is enclosed in a list, and returns
+        its data as a single list, and its shape.
+        
+        For instance, [[0, 1, 2], [3, 4, 5]] will return [0, 1, 2, 3, 4, 5] for
+        the data, and [3, 2] for the shape.
+        """
         element_dims: list[int] | None = None
 
         def parse_element_or_list(
@@ -1889,7 +1915,7 @@ class BaseParser(ABC):
         )
         if len(res) == 0:
             return [], []
-        shape: list[int] = [len(res)] + res[0][1]
+        shape: list[int] = res[0][1] + [len(res)]
         values = [elem for sub_list in res for elem in sub_list[0]]
         return values, shape
 
