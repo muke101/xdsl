@@ -1649,8 +1649,10 @@ class BaseParser(ABC):
         # Parse the data as a list of elements and an optional shape, if given.
         # If there was only given a single element, then there is no shape.
         data: tuple[list[BaseParser._TensorLiteralElement],
-                    list[int]] | BaseParser._TensorLiteralElement
-        if self._current_token.text == '[':
+                    list[int] | None] | BaseParser._TensorLiteralElement
+        if self._current_token.text == '>':
+            data = [], None
+        elif self._current_token.text == '[':
             data = self._parse_tensor_literal_list()
         else:
             data = self._parse_tensor_literal_element()
@@ -1673,10 +1675,16 @@ class BaseParser(ABC):
 
         # Check that the shape matches the data when given a shaped data.
         type_shape = [dim.value.data for dim in type.shape.data]
-        if isinstance(data, tuple) and type_shape != data[1]:
-            self.raise_error(
-                f'Shape mismatch in dense literal. Expected {type_shape} '
-                f'shape from the type, but got {data[1]} shape.')
+        num_values = reduce((lambda x, y: x * y), type_shape, 1)
+
+        if isinstance(data, tuple):
+            if data[1] is None and num_values != 0:
+                self.raise_error('Expected at least one element in the '
+                                 'dense literal, but got None')
+            if data[1] is not None and type_shape != data[1]:
+                self.raise_error(
+                    f'Shape mismatch in dense literal. Expected {type_shape} '
+                    f'shape from the type, but got {data[1]} shape.')
         if any(dim == -1 for dim in type_shape):
             self.raise_error(
                 f'Dense literal attribute should have a static shape.')
@@ -1688,7 +1696,6 @@ class BaseParser(ABC):
                 value.to_type(self, element_type) for value in data[0]
             ]
         else:
-            num_values = reduce((lambda x, y: x * y), type_shape, 1)
             data_values = [data.to_type(self, element_type)] * num_values
 
         return DenseIntOrFPElementsAttr.from_list(type, data_values)
@@ -1901,7 +1908,9 @@ class BaseParser(ABC):
                                    type.signedness.data != Signedness.UNSIGNED,
                                    type.width.data == 1)
             elif isinstance(type, IndexType):
-                return self.to_int(parser, allow_negative=False)
+                return self.to_int(parser,
+                                   allow_negative=True,
+                                   allow_booleans=False)
             else:
                 assert False, 'fatal error in parser'
 
