@@ -618,9 +618,6 @@ VectorOrTensorOf: TypeAlias = (VectorType[AttributeCovT]
 RankedVectorOrTensorOf: TypeAlias = (VectorType[AttributeCovT]
                                      | TensorType[AttributeCovT])
 
-RankedVectorOrTensorOf: TypeAlias = (VectorType[AttributeInvT]
-                                     | TensorType[AttributeInvT])
-
 
 @dataclass
 class VectorRankConstraint(AttrConstraint):
