@@ -17,3 +17,8 @@ class ModulePass(ABC):
     @abstractmethod
     def apply(self, ctx: MLContext, op: builtin.ModuleOp) -> None:
         ...
+
+    def apply_to_clone(self, ctx: MLContext, op: builtin.ModuleOp) -> builtin.ModuleOp:
+        copy = op.clone()
+        self.apply(ctx, copy)
+        return copy

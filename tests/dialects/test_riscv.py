@@ -1,5 +1,8 @@
 from xdsl.utils.test_value import TestSSAValue
+from xdsl.builder import Builder
+from xdsl.dialects.builtin import ModuleOp
 from xdsl.dialects import riscv
+from xdsl.riscv_asm_writer import riscv_code
 
 from xdsl.dialects.builtin import IntegerAttr, i32
 
@@ -77,3 +80,57 @@ def test_csr_op():
     riscv.CsrrsiOp(
         csr=csr, immediate=IntegerAttr(1, i32), rd=riscv.Registers.A2
     ).verify()
+
+
+def test_comment_op():
+    comment_op = riscv.CommentOp("my comment")
+
+    assert comment_op.comment.data == "my comment"
+
+    code = riscv_code(ModuleOp([comment_op]))
+    assert code == "    # my comment\n"
+
+
+def test_return_op():
+    return_op = riscv.ReturnOp(comment="my comment")
+
+    assert return_op.comment is not None
+
+    assert return_op.comment.data == "my comment"
+
+    code = riscv_code(ModuleOp([return_op]))
+    assert code == "    ret                                          # my comment\n"
+
+
+def test_jal_op_no_result():
+    jal_op = riscv.JalOp("label")
+
+    assert jal_op.immediate == riscv.LabelAttr("label")
+
+    code = riscv_code(ModuleOp([jal_op]))
+    assert code == "    jal label\n"
+
+
+def test_jal_op_with_rd():
+    jal_op = riscv.JalOp("label", rd=riscv.Registers.S0)
+
+    assert jal_op.immediate == riscv.LabelAttr("label")
+    assert jal_op.rd is not None
+    assert jal_op.rd.typ == riscv.RegisterType(riscv.Registers.S0)
+
+    code = riscv_code(ModuleOp([jal_op]))
+    assert code == "    jal s0, label\n"
+
+
+def test_get_register_op():
+    @ModuleOp
+    @Builder.implicit_region
+    def module():
+        a1 = riscv.GetRegisterOp(riscv.Registers.A1).res
+        a2 = riscv.GetRegisterOp(riscv.Registers.A2).res
+        _a0 = riscv.AddOp(a1, a2, rd=riscv.Registers.A0).rd
+
+    code = riscv_code(module)
+    expected = "    add a0, a1, a2\n"
+
+    assert code == expected
