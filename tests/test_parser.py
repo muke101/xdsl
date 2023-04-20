@@ -4,9 +4,8 @@ from io import StringIO
 
 from xdsl.dialects.builtin import (IntAttr, DictionaryAttr, StringAttr,
                                    ArrayAttr, Builtin, SymbolRefAttr)
-from xdsl.ir import (MLContext, Attribute, Operation, Region,
-                     ParametrizedAttribute)
-from xdsl.irdl import irdl_attr_definition, irdl_op_definition
+from xdsl.ir import (MLContext, Attribute, Region, ParametrizedAttribute)
+from xdsl.irdl import irdl_attr_definition, irdl_op_definition, IRDLOperation
 from xdsl.parser import BaseParser, XDSLParser, MLIRParser
 from xdsl.printer import Printer
 from xdsl.utils.exceptions import ParseError
@@ -88,7 +87,7 @@ def test_symref(ref: str, expected: Attribute | None):
 
 
 @irdl_op_definition
-class MultiRegionOp(Operation):
+class MultiRegionOp(IRDLOperation):
     name = "test.multi_region"
     r1: Region
     r2: Region
@@ -297,6 +296,24 @@ def test_parse_optional_punctuation_fail(
     assert parser.parse_optional_punctuation(punctuation) is None
 
 
+@pytest.mark.parametrize("text, expected_value", [
+    ("true", True),
+    ("false", False),
+    ("True", None),
+    ("False", None),
+])
+def test_parse_boolean(text: str, expected_value: bool | None):
+    parser = MLIRParser(MLContext(), text)
+    assert parser.parse_optional_boolean() == expected_value
+
+    parser = MLIRParser(MLContext(), text)
+    if expected_value is None:
+        with pytest.raises(ParseError):
+            parser.parse_boolean()
+    else:
+        assert parser.parse_boolean() == expected_value
+
+
 @pytest.mark.parametrize("text, expected_value, allow_boolean, allow_negative",
                          [
                              ("42", 42, False, False),
@@ -360,3 +377,51 @@ def test_parse_optional_int_error(text: str, allow_boolean: bool,
     with pytest.raises(ParseError):
         parser.parse_integer(allow_boolean=allow_boolean,
                              allow_negative=allow_negative)
+
+
+@pytest.mark.parametrize("text, expected_value", [
+    ("42", 42),
+    ("-1", -1),
+    ("true", None),
+    ("false", None),
+    ("0x1a", 26),
+    ("-0x1a", -26),
+    ('0.', 0.0),
+    ('1.', 1.0),
+    ('0.2', 0.2),
+    ('38.1243', 38.1243),
+    ('92.54e43', 92.54e43),
+    ('92.5E43', 92.5E43),
+    ('43.3e-54', 43.3e-54),
+    ('32.E+25', 32.E+25),
+])
+def test_parse_number(text: str, expected_value: int | float | None):
+    parser = MLIRParser(MLContext(), text)
+    assert parser.parse_optional_number() == expected_value
+
+    parser = MLIRParser(MLContext(), text)
+    if expected_value is None:
+        with pytest.raises(ParseError):
+            parser.parse_number()
+    else:
+        assert parser.parse_number() == expected_value
+
+
+@pytest.mark.parametrize("text", [
+    ("-false"),
+    ("-true"),
+    ("-k"),
+    ("-("),
+])
+def test_parse_number_error(text: str):
+    """
+    Test that parsing a negative without an
+    integer or a float after raise an error.
+    """
+    parser = MLIRParser(MLContext(), text)
+    with pytest.raises(ParseError):
+        parser.parse_optional_number()
+
+    parser = MLIRParser(MLContext(), text)
+    with pytest.raises(ParseError):
+        parser.parse_number()

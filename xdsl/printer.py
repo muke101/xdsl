@@ -11,12 +11,13 @@ from xdsl.ir import (BlockArgument, TypeAttribute, SSAValue, Block, Callable,
 from xdsl.utils.diagnostic import Diagnostic
 from xdsl.dialects.builtin import (
     AnyIntegerAttr, AnyFloatAttr, AnyUnrankedTensorType, AnyVectorType,
-    ComplexType, DenseArrayBase, DenseIntOrFPElementsAttr, DenseResourceAttr,
-    Float16Type, Float32Type, Float64Type, FloatAttr, FloatData, IndexType,
-    IntegerType, NoneAttr, OpaqueAttr, Signedness, StridedLayoutAttr,
-    StringAttr, SymbolRefAttr, IntegerAttr, ArrayAttr, IntAttr, TensorType,
-    UnitAttr, FunctionType, UnrankedTensorType, UnregisteredAttr,
-    UnregisteredOp, VectorType, DictionaryAttr)
+    BFloat16Type, ComplexType, DenseArrayBase, DenseIntOrFPElementsAttr,
+    DenseResourceAttr, Float128Type, Float16Type, Float32Type, Float64Type,
+    Float80Type, FloatAttr, FloatData, IndexType, IntegerType, NoneAttr,
+    OpaqueAttr, Signedness, StridedLayoutAttr, StringAttr, SymbolRefAttr,
+    IntegerAttr, ArrayAttr, IntAttr, TensorType, UnitAttr, FunctionType,
+    UnrankedTensorType, UnregisteredAttr, UnregisteredOp, VectorType,
+    DictionaryAttr)
 
 indentNumSpaces = 2
 
@@ -31,7 +32,7 @@ class Printer:
     stream: Optional[Any] = field(default=None)
     print_generic_format: bool = field(default=False)
     diagnostic: Diagnostic = field(default_factory=Diagnostic)
-    target: Target = field(default=Target.XDSL)
+    target: Target = field(default=Target.MLIR)
 
     _indent: int = field(default=0, init=False)
     _ssa_values: Dict[SSAValue, str] = field(default_factory=dict, init=False)
@@ -322,6 +323,9 @@ class Printer:
             return
 
         if self.target == self.Target.MLIR:
+            if isinstance(attribute, BFloat16Type):
+                self.print('bf16')
+                return
             if isinstance(attribute, Float16Type):
                 self.print('f16')
                 return
@@ -330,6 +334,12 @@ class Printer:
                 return
             if isinstance(attribute, Float64Type):
                 self.print('f64')
+                return
+            if isinstance(attribute, Float80Type):
+                self.print('f80')
+                return
+            if isinstance(attribute, Float128Type):
+                self.print('f128')
                 return
 
         if isinstance(attribute, StringAttr):
@@ -418,18 +428,16 @@ class Printer:
         if (isinstance(attribute, DenseIntOrFPElementsAttr)
                 and self.target == self.Target.MLIR):
 
+            def print_one_elem(val: Attribute):
+                if isinstance(val, IntegerAttr | FloatAttr):
+                    self.print(val.value.data)
+                else:
+                    raise Exception("unexpected attribute type "
+                                    "in DenseIntOrFPElementsAttr: "
+                                    f"{type(val)}")
+
             def print_dense_list(array: Sequence[AnyIntegerAttr]
                                  | Sequence[AnyFloatAttr], shape: List[int]):
-
-                def print_one_elem(val: Attribute):
-                    if isinstance(val, IntegerAttr):
-                        self.print(val.value.data)
-                    elif isinstance(val, FloatAttr):
-                        self.print(val.value.data)
-                    else:
-                        raise Exception("unexpected attribute type "
-                                        "in DenseIntOrFPElementsAttr: "
-                                        f"{type(val)}")
 
                 self.print('[')
                 if len(shape) > 1:
@@ -447,7 +455,12 @@ class Printer:
                 len(data)
             ]
             assert shape is not None, "If shape is complete, then it cannot be None"
-            print_dense_list(data, shape)
+            if len(data) == 0:
+                pass
+            elif data.count(data[0]) == len(data):
+                print_one_elem(data[0])
+            else:
+                print_dense_list(data, shape)
             self.print("> : ")
             self.print(attribute.type)
             return
@@ -458,13 +471,11 @@ class Printer:
             self.print(f"dense_resource<{handle}> : ", attribute.type)
             return
 
-        # vector types have an alias in MLIR, but not in xDSL
-        if ((isinstance(attribute, VectorType)
-             or isinstance(attribute, TensorType))
+        # tensor types have an alias in MLIR, but not in xDSL
+        if ((isinstance(attribute, TensorType))
                 and self.target == self.Target.MLIR):
             attribute = cast(AnyVectorType, attribute)
-            self.print(
-                "vector<" if isinstance(attribute, VectorType) else "tensor<")
+            self.print("tensor<")
             self.print_list(
                 attribute.shape.data, lambda x: self.print(x.value.data)
                 if x.value.data != -1 else self.print("?"), "x")
@@ -476,6 +487,38 @@ class Printer:
                 self.print(", ")
                 self.print(attribute.encoding)
             self.print(">")
+            return
+
+        # vector types have an alias in MLIR, but not in xDSL
+        if (isinstance(attribute, VectorType)
+                and self.target == self.Target.MLIR):
+            attribute = cast(AnyVectorType, attribute)
+            shape = attribute.get_shape()
+
+            # Separate the dimensions between the static and the scalable ones
+            if attribute.get_num_scalable_dims() == 0:
+                static_dimensions = shape
+                scalable_dimensions = []
+            else:
+                static_dimensions = shape[:-attribute.get_num_scalable_dims()]
+                scalable_dimensions = shape[-attribute.get_num_scalable_dims(
+                ):]
+
+            self.print('vector<')
+            if len(static_dimensions) != 0:
+                self.print_list(static_dimensions, lambda x: self.print(x),
+                                'x')
+                self.print('x')
+
+            if len(scalable_dimensions) != 0:
+                self.print('[')
+                self.print_list(scalable_dimensions, lambda x: self.print(x),
+                                'x')
+                self.print(']')
+                self.print('x')
+
+            self.print(attribute.element_type)
+            self.print('>')
             return
 
         # Unranked tensors have an alias in MLIR, but not in xDSL

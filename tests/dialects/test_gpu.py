@@ -1,3 +1,4 @@
+from xdsl.builder import Builder
 from xdsl.dialects import builtin, arith, memref
 from xdsl.dialects.gpu import (
     AllocOp, AllReduceOp, AllReduceOperationAttr, AsyncTokenType, BarrierOp,
@@ -70,12 +71,10 @@ def test_all_reduce():
 
     body_block = Block(arg_types=[builtin.IndexType(), builtin.IndexType()])
 
-    ops: list[Operation] = [
-        sum := Operation.clone(arith.Addi.get(*body_block.args)),
+    @Builder.implicit_region
+    def body():
+        sum = Operation.clone(arith.Addi.get(*body_block.args))
         YieldOp.get([sum])
-    ]
-
-    body = Region.from_operation_list(ops)
 
     all_reduce_body = AllReduceOp.from_body(body, init)
 
@@ -193,7 +192,7 @@ def test_lane_id():
 
 
 def test_launch():
-    body = Region.get([])
+    body = Region([])
     ten = arith.Constant.from_int_and_width(10, builtin.IndexType())
     gridSize: list[Operation | SSAValue] = [ten, ten, ten]
     blockSize: list[Operation | SSAValue] = [ten, ten, ten]

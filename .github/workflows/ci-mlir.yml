@@ -44,10 +44,6 @@ jobs:
         pip install -e .[extras]
         pip install nbval
 
-    - name: Install CI dependencies
-      run: |
-        pip install codecov
-
     - name: Cache binaries
       id: cache-binary
       uses: actions/cache@v3

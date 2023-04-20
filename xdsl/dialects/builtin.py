@@ -14,7 +14,8 @@ from xdsl.irdl import (AllOf, OpAttr, VarOpResult, VarOperand, VarRegion,
                        irdl_attr_definition, attr_constr_coercion,
                        irdl_data_definition, irdl_to_attr_constraint,
                        irdl_op_definition, ParameterDef, SingleBlockRegion,
-                       Generic, GenericData, AttrConstraint, AnyAttr)
+                       Generic, GenericData, AttrConstraint, AnyAttr,
+                       IRDLOperation)
 from xdsl.utils.deprecation import deprecated_constructor
 from xdsl.utils.exceptions import VerifyException
 
@@ -334,6 +335,11 @@ AnyIntegerAttr: TypeAlias = IntegerAttr[IntegerType | IndexType]
 
 
 @irdl_attr_definition
+class BFloat16Type(ParametrizedAttribute, TypeAttribute):
+    name: str = "bf16"
+
+
+@irdl_attr_definition
 class Float16Type(ParametrizedAttribute, TypeAttribute):
     name: str = "f16"
 
@@ -348,7 +354,18 @@ class Float64Type(ParametrizedAttribute, TypeAttribute):
     name: str = "f64"
 
 
-AnyFloat: TypeAlias = Float16Type | Float32Type | Float64Type
+@irdl_attr_definition
+class Float80Type(ParametrizedAttribute, TypeAttribute):
+    name: str = "f80"
+
+
+@irdl_attr_definition
+class Float128Type(ParametrizedAttribute, TypeAttribute):
+    name: str = "f128"
+
+
+AnyFloat: TypeAlias = (BFloat16Type | Float16Type | Float32Type | Float64Type
+                       | Float80Type | Float128Type)
 
 
 @irdl_attr_definition
@@ -401,6 +418,10 @@ class FloatAttr(Generic[_FloatAttrTyp], ParametrizedAttribute):
                 type = Float32Type()
             elif type == 64:
                 type = Float64Type()
+            elif type == 80:
+                type = Float80Type()
+            elif type == 128:
+                type = Float128Type()
             else:
                 raise ValueError(f"Invalid bitwidth: {type}")
         super().__init__([data, type])
@@ -498,38 +519,58 @@ class TupleType(ParametrizedAttribute):
 
 
 @irdl_attr_definition
-class VectorType(Generic[AttributeInvT], ParametrizedAttribute, TypeAttribute):
+class VectorType(Generic[AttributeCovT], ParametrizedAttribute, TypeAttribute):
     name = "vector"
 
     shape: ParameterDef[ArrayAttr[AnyIntegerAttr]]
-    element_type: ParameterDef[AttributeInvT]
+    element_type: ParameterDef[AttributeCovT]
+    num_scalable_dims: ParameterDef[IntAttr]
 
     def get_num_dims(self) -> int:
         return len(self.shape.data)
 
+    def get_num_scalable_dims(self) -> int:
+        return self.num_scalable_dims.data
+
     def get_shape(self) -> List[int]:
         return [i.value.data for i in self.shape.data]
+
+    def verify(self):
+        if self.get_num_scalable_dims() < 0:
+            raise VerifyException(
+                f"Number of scalable dimensions {self.get_num_dims()} cannot"
+                " be negative")
+        if self.get_num_scalable_dims() > self.get_num_dims():
+            raise VerifyException(
+                f"Number of scalable dimensions {self.get_num_scalable_dims()}"
+                " cannot be larger than number of dimensions"
+                f" {self.get_num_dims()}")
 
     @staticmethod
     def from_element_type_and_shape(
         referenced_type: AttributeInvT,
-        shape: Sequence[int | IntegerAttr[IndexType]]
+        shape: Sequence[int | IntegerAttr[IndexType]],
+        num_scalable_dims: int | IntAttr = 0,
     ) -> VectorType[AttributeInvT]:
-
+        if isinstance(num_scalable_dims, int):
+            num_scalable_dims = IntAttr(num_scalable_dims)
         return VectorType([
             ArrayAttr([
                 IntegerAttr[IntegerType].from_index_int_value(d) if isinstance(
                     d, int) else d for d in shape
-            ]), referenced_type
+            ]),
+            referenced_type,
+            num_scalable_dims,
         ])
 
     @staticmethod
     def from_params(
         referenced_type: AttributeInvT,
         shape: ArrayAttr[IntegerAttr[IntegerType]] = ArrayAttr(
-            [IntegerAttr.from_int_and_width(1, 64)])
+            [IntegerAttr.from_int_and_width(1, 64)]),
+        num_scalable_dims: IntAttr = IntAttr(0),
     ) -> VectorType[AttributeInvT]:
-        return VectorType([shape, referenced_type])
+        return VectorType([shape, referenced_type, num_scalable_dims])
 
 
 AnyVectorType: TypeAlias = VectorType[Attribute]
@@ -611,9 +652,12 @@ class ContainerOf(AttrConstraint):
             self.elem_constr.verify(attr)
 
 
-VectorOrTensorOf: TypeAlias = (VectorType[AttributeInvT]
-                               | TensorType[AttributeInvT]
-                               | UnrankedTensorType[AttributeInvT])
+VectorOrTensorOf: TypeAlias = (VectorType[AttributeCovT]
+                               | TensorType[AttributeCovT]
+                               | UnrankedTensorType[AttributeCovT])
+
+RankedVectorOrTensorOf: TypeAlias = (VectorType[AttributeCovT]
+                                     | TensorType[AttributeCovT])
 
 
 @dataclass
@@ -675,9 +719,9 @@ class VectorBaseTypeAndRankConstraint(AttrConstraint):
 @irdl_attr_definition
 class DenseIntOrFPElementsAttr(ParametrizedAttribute):
     name = "dense"
-    type: ParameterDef[VectorOrTensorOf[IntegerType]
-                       | VectorOrTensorOf[IndexType]
-                       | VectorOrTensorOf[AnyFloat]]
+    type: ParameterDef[RankedVectorOrTensorOf[IntegerType]
+                       | RankedVectorOrTensorOf[IndexType]
+                       | RankedVectorOrTensorOf[AnyFloat]]
     data: ParameterDef[ArrayAttr[AnyIntegerAttr] | ArrayAttr[AnyFloatAttr]]
 
     # The type stores the shape data
@@ -705,7 +749,7 @@ class DenseIntOrFPElementsAttr(ParametrizedAttribute):
 
     @staticmethod
     def create_dense_index(
-        type: VectorOrTensorOf[IndexType],
+        type: RankedVectorOrTensorOf[IndexType],
         data: Sequence[int] | Sequence[IntegerAttr[IndexType]]
     ) -> DenseIntOrFPElementsAttr:
         if len(data) and isinstance(data[0], int):
@@ -720,7 +764,7 @@ class DenseIntOrFPElementsAttr(ParametrizedAttribute):
 
     @staticmethod
     def create_dense_int(
-        type: VectorOrTensorOf[IntegerType],
+        type: RankedVectorOrTensorOf[IntegerType],
         data: Sequence[int] | Sequence[IntegerAttr[IntegerType]]
     ) -> DenseIntOrFPElementsAttr:
         if len(data) and isinstance(data[0], int):
@@ -735,7 +779,7 @@ class DenseIntOrFPElementsAttr(ParametrizedAttribute):
 
     @staticmethod
     def create_dense_float(
-        type: VectorOrTensorOf[AnyFloat],
+        type: RankedVectorOrTensorOf[AnyFloat],
         data: Sequence[int | float] | Sequence[AnyFloatAttr]
     ) -> DenseIntOrFPElementsAttr:
         if len(data) and isinstance(data[0], int | float):
@@ -751,7 +795,8 @@ class DenseIntOrFPElementsAttr(ParametrizedAttribute):
     @overload
     @staticmethod
     def from_list(
-        type: VectorOrTensorOf[Attribute], data: Sequence[int]
+        type: RankedVectorOrTensorOf[AnyFloat | IntegerType | IndexType],
+        data: Sequence[int]
         | Sequence[IntegerAttr[IndexType]] | Sequence[IntegerAttr[IntegerType]]
     ) -> DenseIntOrFPElementsAttr:
         ...
@@ -759,30 +804,31 @@ class DenseIntOrFPElementsAttr(ParametrizedAttribute):
     @overload
     @staticmethod
     def from_list(
-        type: VectorOrTensorOf[Attribute],
+        type: RankedVectorOrTensorOf[AnyFloat | IntegerType | IndexType],
         data: Sequence[int | float] | Sequence[AnyFloatAttr]
     ) -> DenseIntOrFPElementsAttr:
         ...
 
     @staticmethod
     def from_list(
-        type: VectorOrTensorOf[Attribute], data: Sequence[int | float]
+        type: RankedVectorOrTensorOf[AnyFloat | IntegerType | IndexType],
+        data: Sequence[int | float]
         | Sequence[AnyIntegerAttr] | Sequence[AnyFloatAttr]
     ) -> DenseIntOrFPElementsAttr:
         if isinstance(type.element_type, IntegerType):
-            new_type = cast(VectorOrTensorOf[IntegerType], type)
+            new_type = cast(RankedVectorOrTensorOf[IntegerType], type)
             new_data = cast(Sequence[int] | Sequence[IntegerAttr[IntegerType]],
                             data)
             return DenseIntOrFPElementsAttr.create_dense_int(
                 new_type, new_data)
         elif isinstance(type.element_type, IndexType):
-            new_type = cast(VectorOrTensorOf[IndexType], type)
+            new_type = cast(RankedVectorOrTensorOf[IndexType], type)
             new_data = cast(Sequence[int] | Sequence[IntegerAttr[IndexType]],
                             data)
             return DenseIntOrFPElementsAttr.create_dense_index(
                 new_type, new_data)
         elif isinstance(type.element_type, AnyFloat):
-            new_type = cast(VectorOrTensorOf[AnyFloat], type)
+            new_type = cast(RankedVectorOrTensorOf[AnyFloat], type)
             new_data = cast(
                 Sequence[int | float] | Sequence[FloatAttr[AnyFloat]], data)
             return DenseIntOrFPElementsAttr.create_dense_float(
@@ -795,7 +841,7 @@ class DenseIntOrFPElementsAttr(ParametrizedAttribute):
             data: List[int] | List[float],
             typ: IntegerType | IndexType | AnyFloat
     ) -> DenseIntOrFPElementsAttr:
-        t = AnyVectorType.from_element_type_and_shape(typ, [len(data)])
+        t = VectorType.from_element_type_and_shape(typ, [len(data)])
         return DenseIntOrFPElementsAttr.from_list(t, data)
 
     @staticmethod
@@ -831,8 +877,7 @@ class DenseResourceAttr(ParametrizedAttribute):
 class DenseArrayBase(ParametrizedAttribute):
     name = "array"
 
-    elt_type: ParameterDef[IntegerType | Float16Type | Float32Type
-                           | Float64Type]
+    elt_type: ParameterDef[IntegerType | AnyFloat]
     data: ParameterDef[ArrayAttr[IntAttr] | ArrayAttr[FloatData]]
 
     def verify(self):
@@ -861,8 +906,7 @@ class DenseArrayBase(ParametrizedAttribute):
 
     @staticmethod
     def create_dense_float(
-            typ: Float16Type | Float32Type | Float64Type,
-            data: Sequence[int | float] | Sequence[FloatData]
+            typ: AnyFloat, data: Sequence[int | float] | Sequence[FloatData]
     ) -> DenseArrayBase:
         if len(data) and isinstance(data[0], int | float):
             attr_list = [
@@ -899,6 +943,17 @@ class DenseArrayBase(ParametrizedAttribute):
             return DenseArrayBase.create_dense_float(type, _data)
         else:
             raise TypeError(f"Unsupported element type {type}")
+
+    def as_tuple(self) -> tuple[int, ...] | tuple[float, ...]:
+        """
+        Get the "raw" data out as a tuple. This will not
+        apply the datatype restrictions that the array element
+        type would suggest!
+
+        e.g. given a dense<i8: 99999999, 255, 256>, as_tuple()
+        would return 1234567, 255, 256 and not 135, 255, 0 (mod 256)
+        """
+        return tuple(x.data for x in self.data.data)
 
 
 @irdl_attr_definition
@@ -972,7 +1027,7 @@ class StridedLayoutAttr(ParametrizedAttribute):
 
 
 @irdl_op_definition
-class UnrealizedConversionCastOp(Operation):
+class UnrealizedConversionCastOp(IRDLOperation):
     name: str = "builtin.unrealized_conversion_cast"
 
     inputs: VarOperand
@@ -987,10 +1042,10 @@ class UnrealizedConversionCastOp(Operation):
         )
 
 
-class UnregisteredOp(Operation, ABC):
+class UnregisteredOp(IRDLOperation, ABC):
     """
     An unregistered operation.
-    
+
     Each unregistered op is registered as a subclass of `UnregisteredOp`,
     and op with different names have distinct subclasses.
     """
@@ -1034,11 +1089,11 @@ class UnregisteredOp(Operation, ABC):
 class UnregisteredAttr(ParametrizedAttribute, ABC):
     """
     An unregistered attribute or type.
-    
+
     Each unregistered attribute is registered as a subclass of
-    `UnregisteredAttr`, and attribute with different names have 
+    `UnregisteredAttr`, and attribute with different names have
     distinct subclasses.
-    
+
     Since attributes do not have a generic format, unregistered
     attributes represent their original parameters as a string,
     which is exactly the content parsed from the textual
@@ -1067,7 +1122,7 @@ class UnregisteredAttr(ParametrizedAttribute, ABC):
     def with_name_and_type(cls, name: str,
                            is_type: bool) -> type[UnregisteredAttr]:
         """
-        Return a new unregistered attribute type given a name and a 
+        Return a new unregistered attribute type given a name and a
         boolean indicating if the attribute can be a type.
         This function should not be called directly. Use methods from
         `MLContext` to get an `UnregisteredAttr` type.
@@ -1100,19 +1155,19 @@ class UnregisteredAttr(ParametrizedAttribute, ABC):
 
 
 @irdl_op_definition
-class ModuleOp(Operation):
+class ModuleOp(IRDLOperation):
     name: str = "builtin.module"
 
     body: SingleBlockRegion
 
     @property
     def ops(self) -> List[Operation]:
-        return self.regions[0].blocks[0].ops
+        return self.regions[0].block.ops
 
     @staticmethod
     def from_region_or_ops(ops: List[Operation] | Region) -> ModuleOp:
         if isinstance(ops, list):
-            region = Region.from_operation_list(ops)
+            region = Region([Block(ops)])
         elif isinstance(ops, Region):
             region = ops
         else:
@@ -1124,9 +1179,12 @@ class ModuleOp(Operation):
 
 
 # FloatXXType shortcuts
+bf16 = BFloat16Type()
 f16 = Float16Type()
 f32 = Float32Type()
 f64 = Float64Type()
+f80 = Float64Type()
+f128 = Float64Type()
 
 Builtin = Dialect(
     [
@@ -1155,9 +1213,12 @@ Builtin = Dialect(
         # Types
         ComplexType,
         FunctionType,
+        BFloat16Type,
         Float16Type,
         Float32Type,
         Float64Type,
+        Float80Type,
+        Float128Type,
         FloatAttr,
         SignednessAttr,
         TupleType,
