@@ -1,11 +1,17 @@
 from __future__ import annotations
 
-from typing import Annotated, Union
+from typing import Union
 
 from xdsl.dialects.arith import FastMathFlagsAttr
 from xdsl.dialects.builtin import IntegerType, AnyFloat
-from xdsl.ir import Operation, SSAValue, OpResult, Dialect
-from xdsl.irdl import irdl_op_definition, OptOpAttr, Operand, IRDLOperation
+from xdsl.ir import Operation, SSAValue, Dialect
+from xdsl.irdl import (
+    OperandDef,
+    OptAttributeDef,
+    ResultDef,
+    irdl_op_definition,
+    IRDLOperation,
+)
 
 
 @irdl_op_definition
@@ -22,9 +28,9 @@ class AbsFOp(IRDLOperation):
     """
 
     name: str = "math.absf"
-    fastmath: OptOpAttr[FastMathFlagsAttr]
-    operand: Annotated[Operand, AnyFloat]
-    result: Annotated[OpResult, AnyFloat]
+    fastmath = OptAttributeDef(FastMathFlagsAttr)
+    operand = OperandDef(AnyFloat)
+    result = ResultDef(AnyFloat)
 
     @staticmethod
     def get(
@@ -52,8 +58,8 @@ class AbsIOp(IRDLOperation):
     """
 
     name: str = "math.absi"
-    operand: Annotated[Operand, IntegerType]
-    result: Annotated[OpResult, IntegerType]
+    operand = OperandDef(IntegerType)
+    result = ResultDef(IntegerType)
 
     @staticmethod
     def get(operand: Union[Operation, SSAValue]) -> AbsIOp:
@@ -85,10 +91,10 @@ class Atan2Op(IRDLOperation):
     """
 
     name: str = "math.atan2"
-    fastmath: OptOpAttr[FastMathFlagsAttr]
-    lhs: Annotated[Operand, AnyFloat]
-    rhs: Annotated[Operand, AnyFloat]
-    result: Annotated[OpResult, AnyFloat]
+    fastmath = OptAttributeDef(FastMathFlagsAttr)
+    lhs = OperandDef(AnyFloat)
+    rhs = OperandDef(AnyFloat)
+    result = ResultDef(AnyFloat)
 
     @staticmethod
     def get(
@@ -122,9 +128,9 @@ class AtanOp(IRDLOperation):
     """
 
     name: str = "math.atan"
-    fastmath: OptOpAttr[FastMathFlagsAttr]
-    operand: Annotated[Operand, AnyFloat]
-    result: Annotated[OpResult, AnyFloat]
+    fastmath = OptAttributeDef(FastMathFlagsAttr)
+    operand = OperandDef(AnyFloat)
+    result = ResultDef(AnyFloat)
 
     @staticmethod
     def get(
@@ -154,9 +160,9 @@ class CbrtOp(IRDLOperation):
     """
 
     name: str = "math.cbrt"
-    fastmath: OptOpAttr[FastMathFlagsAttr]
-    operand: Annotated[Operand, AnyFloat]
-    result: Annotated[OpResult, AnyFloat]
+    fastmath = OptAttributeDef(FastMathFlagsAttr)
+    operand = OperandDef(AnyFloat)
+    result = ResultDef(AnyFloat)
 
     @staticmethod
     def get(
@@ -187,9 +193,9 @@ class CeilOp(IRDLOperation):
     """
 
     name: str = "math.ceil"
-    fastmath: OptOpAttr[FastMathFlagsAttr]
-    operand: Annotated[Operand, AnyFloat]
-    result: Annotated[OpResult, AnyFloat]
+    fastmath = OptAttributeDef(FastMathFlagsAttr)
+    operand = OperandDef(AnyFloat)
+    result = ResultDef(AnyFloat)
 
     @staticmethod
     def get(
@@ -221,10 +227,10 @@ class CopySignOp(IRDLOperation):
     """
 
     name: str = "math.copysign"
-    fastmath: OptOpAttr[FastMathFlagsAttr]
-    lhs: Annotated[Operand, AnyFloat]
-    rhs: Annotated[Operand, AnyFloat]
-    result: Annotated[OpResult, AnyFloat]
+    fastmath = OptAttributeDef(FastMathFlagsAttr)
+    lhs = OperandDef(AnyFloat)
+    rhs = OperandDef(AnyFloat)
+    result = ResultDef(AnyFloat)
 
     @staticmethod
     def get(
@@ -258,9 +264,9 @@ class CosOp(IRDLOperation):
     """
 
     name: str = "math.cos"
-    fastmath: OptOpAttr[FastMathFlagsAttr]
-    operand: Annotated[Operand, AnyFloat]
-    result: Annotated[OpResult, AnyFloat]
+    fastmath = OptAttributeDef(FastMathFlagsAttr)
+    operand = OperandDef(AnyFloat)
+    result = ResultDef(AnyFloat)
 
     @staticmethod
     def get(
@@ -287,8 +293,8 @@ class CountLeadingZerosOp(IRDLOperation):
     """
 
     name: str = "math.ctlz"
-    operand: Annotated[Operand, IntegerType]
-    result: Annotated[OpResult, IntegerType]
+    operand = OperandDef(IntegerType)
+    result = ResultDef(IntegerType)
 
     @staticmethod
     def get(operand: Union[Operation, SSAValue]) -> CountLeadingZerosOp:
@@ -309,8 +315,8 @@ class CountTrailingZerosOp(IRDLOperation):
     """
 
     name: str = "math.cttz"
-    operand: Annotated[Operand, IntegerType]
-    result: Annotated[OpResult, IntegerType]
+    operand = OperandDef(IntegerType)
+    result = ResultDef(IntegerType)
 
     @staticmethod
     def get(operand: Union[Operation, SSAValue]) -> CountTrailingZerosOp:
@@ -333,8 +339,8 @@ class CtPopOp(IRDLOperation):
     """
 
     name: str = "math.ctpop"
-    operand: Annotated[Operand, IntegerType]
-    result: Annotated[OpResult, IntegerType]
+    operand = OperandDef(IntegerType)
+    result = ResultDef(IntegerType)
 
     @staticmethod
     def get(operand: Union[Operation, SSAValue]) -> CtPopOp:
@@ -359,9 +365,9 @@ class ErfOp(IRDLOperation):
     """
 
     name: str = "math.erf"
-    fastmath: OptOpAttr[FastMathFlagsAttr]
-    operand: Annotated[Operand, AnyFloat]
-    result: Annotated[OpResult, AnyFloat]
+    fastmath = OptAttributeDef(FastMathFlagsAttr)
+    operand = OperandDef(AnyFloat)
+    result = ResultDef(AnyFloat)
 
     @staticmethod
     def get(
@@ -392,9 +398,9 @@ class Exp2Op(IRDLOperation):
     """
 
     name: str = "math.exp2"
-    fastmath: OptOpAttr[FastMathFlagsAttr]
-    operand: Annotated[Operand, AnyFloat]
-    result: Annotated[OpResult, AnyFloat]
+    fastmath = OptAttributeDef(FastMathFlagsAttr)
+    operand = OperandDef(AnyFloat)
+    result = ResultDef(AnyFloat)
 
     @staticmethod
     def get(
@@ -427,9 +433,9 @@ class ExpM1Op(IRDLOperation):
     """
 
     name: str = "math.expm1"
-    fastmath: OptOpAttr[FastMathFlagsAttr]
-    operand: Annotated[Operand, AnyFloat]
-    result: Annotated[OpResult, AnyFloat]
+    fastmath = OptAttributeDef(FastMathFlagsAttr)
+    operand = OperandDef(AnyFloat)
+    result = ResultDef(AnyFloat)
 
     @staticmethod
     def get(
@@ -460,9 +466,9 @@ class ExpOp(IRDLOperation):
     """
 
     name: str = "math.exp"
-    fastmath: OptOpAttr[FastMathFlagsAttr]
-    operand: Annotated[Operand, AnyFloat]
-    result: Annotated[OpResult, AnyFloat]
+    fastmath = OptAttributeDef(FastMathFlagsAttr)
+    operand = OperandDef(AnyFloat)
+    result = ResultDef(AnyFloat)
 
     @staticmethod
     def get(
@@ -501,10 +507,10 @@ class FPowIOp(IRDLOperation):
     """
 
     name: str = "math.fpowi"
-    fastmath: OptOpAttr[FastMathFlagsAttr]
-    lhs: Annotated[Operand, AnyFloat]
-    rhs: Annotated[Operand, IntegerType]
-    result: Annotated[OpResult, AnyFloat]
+    fastmath = OptAttributeDef(FastMathFlagsAttr)
+    lhs = OperandDef(AnyFloat)
+    rhs = OperandDef(IntegerType)
+    result = ResultDef(AnyFloat)
 
     @staticmethod
     def get(
@@ -538,9 +544,9 @@ class FloorOp(IRDLOperation):
     """
 
     name: str = "math.floor"
-    fastmath: OptOpAttr[FastMathFlagsAttr]
-    operand: Annotated[Operand, AnyFloat]
-    result: Annotated[OpResult, AnyFloat]
+    fastmath = OptAttributeDef(FastMathFlagsAttr)
+    operand = OperandDef(AnyFloat)
+    result = ResultDef(AnyFloat)
 
     @staticmethod
     def get(
@@ -576,11 +582,11 @@ class FmaOp(IRDLOperation):
     """
 
     name: str = "math.fma"
-    fastmath: OptOpAttr[FastMathFlagsAttr]
-    a: Annotated[Operand, AnyFloat]
-    b: Annotated[Operand, AnyFloat]
-    c: Annotated[Operand, AnyFloat]
-    result: Annotated[OpResult, AnyFloat]
+    fastmath = OptAttributeDef(FastMathFlagsAttr)
+    a = OperandDef(AnyFloat)
+    b = OperandDef(AnyFloat)
+    c = OperandDef(AnyFloat)
+    result = ResultDef(AnyFloat)
 
     @staticmethod
     def get(
@@ -615,9 +621,9 @@ class IPowIOp(IRDLOperation):
     """
 
     name: str = "math.ipowi"
-    lhs: Annotated[Operand, IntegerType]
-    rhs: Annotated[Operand, IntegerType]
-    result: Annotated[OpResult, IntegerType]
+    lhs = OperandDef(IntegerType)
+    rhs = OperandDef(IntegerType)
+    result = ResultDef(IntegerType)
 
     @staticmethod
     def get(
@@ -642,9 +648,9 @@ class Log10Op(IRDLOperation):
     """
 
     name: str = "math.log10"
-    fastmath: OptOpAttr[FastMathFlagsAttr]
-    operand: Annotated[Operand, AnyFloat]
-    result: Annotated[OpResult, AnyFloat]
+    fastmath = OptAttributeDef(FastMathFlagsAttr)
+    operand = OperandDef(AnyFloat)
+    result = ResultDef(AnyFloat)
 
     @staticmethod
     def get(
@@ -674,9 +680,9 @@ class Log1pOp(IRDLOperation):
     """
 
     name: str = "math.log1p"
-    fastmath: OptOpAttr[FastMathFlagsAttr]
-    operand: Annotated[Operand, AnyFloat]
-    result: Annotated[OpResult, AnyFloat]
+    fastmath = OptAttributeDef(FastMathFlagsAttr)
+    operand = OperandDef(AnyFloat)
+    result = ResultDef(AnyFloat)
 
     @staticmethod
     def get(
@@ -704,9 +710,9 @@ class Log2Op(IRDLOperation):
     """
 
     name: str = "math.log2"
-    fastmath: OptOpAttr[FastMathFlagsAttr]
-    operand: Annotated[Operand, AnyFloat]
-    result: Annotated[OpResult, AnyFloat]
+    fastmath = OptAttributeDef(FastMathFlagsAttr)
+    operand = OperandDef(AnyFloat)
+    result = ResultDef(AnyFloat)
 
     @staticmethod
     def get(
@@ -734,9 +740,9 @@ class LogOp(IRDLOperation):
     """
 
     name: str = "math.log"
-    fastmath: OptOpAttr[FastMathFlagsAttr]
-    operand: Annotated[Operand, AnyFloat]
-    result: Annotated[OpResult, AnyFloat]
+    fastmath = OptAttributeDef(FastMathFlagsAttr)
+    operand = OperandDef(AnyFloat)
+    result = ResultDef(AnyFloat)
 
     @staticmethod
     def get(
@@ -767,10 +773,10 @@ class PowFOp(IRDLOperation):
     """
 
     name: str = "math.powf"
-    fastmath: OptOpAttr[FastMathFlagsAttr]
-    lhs: Annotated[Operand, AnyFloat]
-    rhs: Annotated[Operand, AnyFloat]
-    result: Annotated[OpResult, AnyFloat]
+    fastmath = OptAttributeDef(FastMathFlagsAttr)
+    lhs = OperandDef(AnyFloat)
+    rhs = OperandDef(AnyFloat)
+    result = ResultDef(AnyFloat)
 
     @staticmethod
     def get(
@@ -807,9 +813,9 @@ class RoundEvenOp(IRDLOperation):
     """
 
     name: str = "math.roundeven"
-    fastmath: OptOpAttr[FastMathFlagsAttr]
-    operand: Annotated[Operand, AnyFloat]
-    result: Annotated[OpResult, AnyFloat]
+    fastmath = OptAttributeDef(FastMathFlagsAttr)
+    operand = OperandDef(AnyFloat)
+    result = ResultDef(AnyFloat)
 
     @staticmethod
     def get(
@@ -843,9 +849,9 @@ class RoundOp(IRDLOperation):
     """
 
     name: str = "math.round"
-    fastmath: OptOpAttr[FastMathFlagsAttr]
-    operand: Annotated[Operand, AnyFloat]
-    result: Annotated[OpResult, AnyFloat]
+    fastmath = OptAttributeDef(FastMathFlagsAttr)
+    operand = OperandDef(AnyFloat)
+    result = ResultDef(AnyFloat)
 
     @staticmethod
     def get(
@@ -872,9 +878,9 @@ class RsqrtOp(IRDLOperation):
     """
 
     name: str = "math.rsqrt"
-    fastmath: OptOpAttr[FastMathFlagsAttr]
-    operand: Annotated[Operand, AnyFloat]
-    result: Annotated[OpResult, AnyFloat]
+    fastmath = OptAttributeDef(FastMathFlagsAttr)
+    operand = OperandDef(AnyFloat)
+    result = ResultDef(AnyFloat)
 
     @staticmethod
     def get(
@@ -905,9 +911,9 @@ class SinOp(IRDLOperation):
     """
 
     name: str = "math.sin"
-    fastmath: OptOpAttr[FastMathFlagsAttr]
-    operand: Annotated[Operand, AnyFloat]
-    result: Annotated[OpResult, AnyFloat]
+    fastmath = OptAttributeDef(FastMathFlagsAttr)
+    operand = OperandDef(AnyFloat)
+    result = ResultDef(AnyFloat)
 
     @staticmethod
     def get(
@@ -934,9 +940,9 @@ class SqrtOp(IRDLOperation):
     """
 
     name: str = "math.sqrt"
-    fastmath: OptOpAttr[FastMathFlagsAttr]
-    operand: Annotated[Operand, AnyFloat]
-    result: Annotated[OpResult, AnyFloat]
+    fastmath = OptAttributeDef(FastMathFlagsAttr)
+    operand = OperandDef(AnyFloat)
+    result = ResultDef(AnyFloat)
 
     @staticmethod
     def get(
@@ -964,9 +970,9 @@ class TanOp(IRDLOperation):
     """
 
     name: str = "math.tan"
-    fastmath: OptOpAttr[FastMathFlagsAttr]
-    operand: Annotated[Operand, AnyFloat]
-    result: Annotated[OpResult, AnyFloat]
+    fastmath = OptAttributeDef(FastMathFlagsAttr)
+    operand = OperandDef(AnyFloat)
+    result = ResultDef(AnyFloat)
 
     @staticmethod
     def get(
@@ -994,9 +1000,9 @@ class TanhOp(IRDLOperation):
     """
 
     name: str = "math.tanh"
-    fastmath: OptOpAttr[FastMathFlagsAttr]
-    operand: Annotated[Operand, AnyFloat]
-    result: Annotated[OpResult, AnyFloat]
+    fastmath = OptAttributeDef(FastMathFlagsAttr)
+    operand = OperandDef(AnyFloat)
+    result = ResultDef(AnyFloat)
 
     @staticmethod
     def get(
@@ -1029,9 +1035,9 @@ class TruncOp(IRDLOperation):
     """
 
     name: str = "math.trunc"
-    fastmath: OptOpAttr[FastMathFlagsAttr]
-    operand: Annotated[Operand, AnyFloat]
-    result: Annotated[OpResult, AnyFloat]
+    fastmath = OptAttributeDef(FastMathFlagsAttr)
+    operand = OperandDef(AnyFloat)
+    result = ResultDef(AnyFloat)
 
     @staticmethod
     def get(

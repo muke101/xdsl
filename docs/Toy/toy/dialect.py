@@ -4,7 +4,7 @@ Toy language dialect from MLIR tutorial.
 
 from __future__ import annotations
 
-from typing import Annotated, TypeAlias, cast
+from typing import TypeAlias, cast
 
 from xdsl.ir import Dialect, SSAValue, Attribute, Block, Region, OpResult
 from xdsl.dialects.builtin import (
@@ -18,12 +18,14 @@ from xdsl.dialects.builtin import (
     StringAttr,
 )
 from xdsl.irdl import (
-    OpAttr,
-    Operand,
-    OptOpAttr,
-    OptOperand,
-    VarOpResult,
-    VarOperand,
+    AttributeDef,
+    OperandDef,
+    OptAttributeDef,
+    OptOperandDef,
+    RegionDef,
+    ResultDef,
+    VarOperandDef,
+    VarResultDef,
     irdl_op_definition,
     AnyAttr,
     IRDLOperation,
@@ -50,8 +52,8 @@ class ConstantOp(IRDLOperation):
     """
 
     name: str = "toy.constant"
-    value: OpAttr[DenseIntOrFPElementsAttr]
-    res: Annotated[OpResult, TensorTypeF64]
+    value = AttributeDef(DenseIntOrFPElementsAttr)
+    res = ResultDef(TensorTypeF64)
 
     def __init__(self, value: DenseIntOrFPElementsAttr):
         super().__init__(result_types=[value.type], attributes={"value": value})
@@ -87,9 +89,9 @@ class AddOp(IRDLOperation):
     """
 
     name: str = "toy.add"
-    lhs: Annotated[Operand, AnyTensorTypeF64]
-    rhs: Annotated[Operand, AnyTensorTypeF64]
-    res: Annotated[OpResult, AnyTensorTypeF64]
+    lhs = OperandDef(AnyTensorTypeF64)
+    rhs = OperandDef(AnyTensorTypeF64)
+    res = ResultDef(AnyTensorTypeF64)
 
     def __init__(self, lhs: SSAValue, rhs: SSAValue):
         if isa(lhs.typ, TensorTypeF64):
@@ -133,10 +135,10 @@ class FuncOp(IRDLOperation):
     """
 
     name: str = "toy.func"
-    body: Region
-    sym_name: OpAttr[StringAttr]
-    function_type: OpAttr[FunctionType]
-    sym_visibility: OptOpAttr[StringAttr]
+    body = RegionDef()
+    sym_name = AttributeDef(StringAttr)
+    function_type = AttributeDef(FunctionType)
+    sym_visibility = OptAttributeDef(StringAttr)
 
     def __init__(
         self, name: str, ftype: FunctionType, region: Region, /, private: bool = False
@@ -206,11 +208,11 @@ class FuncOp(IRDLOperation):
 @irdl_op_definition
 class GenericCallOp(IRDLOperation):
     name: str = "toy.generic_call"
-    arguments: Annotated[VarOperand, AnyAttr()]
-    callee: OpAttr[SymbolRefAttr]
+    arguments = VarOperandDef()
+    callee = AttributeDef(SymbolRefAttr)
 
     # Note: naming this results triggers an ArgumentError
-    res: Annotated[VarOpResult, AnyTensorTypeF64]
+    res = VarResultDef(AnyTensorTypeF64)
 
     def __init__(
         self,
@@ -236,9 +238,9 @@ class MulOp(IRDLOperation):
     """
 
     name: str = "toy.mul"
-    lhs: Annotated[Operand, AnyTensorTypeF64]
-    rhs: Annotated[Operand, AnyTensorTypeF64]
-    res: Annotated[OpResult, AnyTensorTypeF64]
+    lhs = OperandDef(AnyTensorTypeF64)
+    rhs = OperandDef(AnyTensorTypeF64)
+    res = ResultDef(AnyTensorTypeF64)
 
     def __init__(self, lhs: SSAValue, rhs: SSAValue):
         if isa(lhs.typ, TensorTypeF64):
@@ -271,7 +273,7 @@ class PrintOp(IRDLOperation):
     """
 
     name: str = "toy.print"
-    input: Annotated[Operand, AnyAttr()]
+    input = OperandDef(AnyAttr())
 
     def __init__(self, input: SSAValue):
         return super().__init__(operands=[input])
@@ -294,7 +296,7 @@ class ReturnOp(IRDLOperation):
     """
 
     name: str = "toy.return"
-    input: Annotated[OptOperand, AnyTensorTypeF64]
+    input = OptOperandDef(AnyTensorTypeF64)
 
     def __init__(self, input: SSAValue | None = None):
         return super().__init__(operands=[input])
@@ -312,9 +314,9 @@ class ReshapeOp(IRDLOperation):
     """
 
     name: str = "toy.reshape"
-    arg: Annotated[Operand, AnyTensorTypeF64]
+    arg = OperandDef(AnyTensorTypeF64)
     # We expect that the reshape operation returns a statically shaped tensor.
-    res: Annotated[OpResult, TensorTypeF64]
+    res = ResultDef(TensorTypeF64)
 
     def __init__(self, arg: SSAValue, shape: list[int]):
         if not isa(arg.typ, AnyTensorTypeF64):
@@ -343,8 +345,8 @@ class ReshapeOp(IRDLOperation):
 @irdl_op_definition
 class TransposeOp(IRDLOperation):
     name: str = "toy.transpose"
-    arguments: Annotated[Operand, AnyTensorTypeF64]
-    res: Annotated[OpResult, AnyTensorTypeF64]
+    arguments = OperandDef(AnyTensorTypeF64)
+    res = ResultDef(AnyTensorTypeF64)
 
     def __init__(self, input: SSAValue):
         output_type: TensorTypeF64 | UnrankedTensorTypeF64

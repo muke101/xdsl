@@ -12,8 +12,10 @@ from xdsl.irdl import (
     OptAttributeDef,
     OptOperandDef,
     OptRegionDef,
+    OptResultDef,
     VarOperandDef,
     VarRegionDef,
+    VarResultDef,
     irdl_op_definition,
     OperandDef,
     ResultDef,
@@ -23,7 +25,7 @@ from xdsl.irdl import (
     RegionDef,
     IRDLOperation,
 )
-from xdsl.utils.exceptions import PyRDLOpDefinitionError, VerifyException
+from xdsl.utils.exceptions import VerifyException
 
 ################################################################################
 #                              IRDL definition                                 #
@@ -37,7 +39,7 @@ class OpDefTestOp(IRDLOperation):
     operand = OperandDef()
     result = ResultDef()
     attr = AttributeDef(Attribute)
-    region: Region
+    region = RegionDef()
 
     # Check that we can define methods in operation definitions
     def test(self):
@@ -50,38 +52,9 @@ def test_get_definition():
         "test.op_def_test",
         operands=[("operand", OperandDef(AnyAttr()))],
         results=[("result", ResultDef(AnyAttr()))],
-        attributes={"attr": AttributeDef(AnyAttr())},
+        attributes={"attr": AttributeDef(Attribute)},
         regions=[("region", RegionDef())],
     )
-
-
-################################################################################
-#                            Invalid definitions                               #
-################################################################################
-
-
-class InvalidTypedFieldTestOp(IRDLOperation):
-    name = "test.invalid_typed_field"
-
-    field: int
-
-
-def test_invalid_typed_field():
-    """Check that typed fields are not allowed"""
-    with pytest.raises(PyRDLOpDefinitionError):
-        irdl_op_definition(InvalidTypedFieldTestOp)
-
-
-class InvalidFieldTestOp(IRDLOperation):
-    name = "test.invalid_field"
-
-    field = 2
-
-
-def test_invalid_field():
-    """Check that untyped fields are not allowed"""
-    with pytest.raises(PyRDLOpDefinitionError):
-        irdl_op_definition(InvalidFieldTestOp)
 
 
 ################################################################################
@@ -175,9 +148,9 @@ class OpResultOp(IRDLOperation):
 
     irdl_options = [AttrSizedResultSegments()]
 
-    result: OpResult
-    opt_result = OptOperandDef()
-    var_result = VarOperandDef()
+    result = ResultDef()
+    opt_result = OptResultDef()
+    var_result = VarResultDef()
 
 
 def test_opresult_accessors():

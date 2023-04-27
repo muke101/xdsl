@@ -1,16 +1,16 @@
 from __future__ import annotations
 
-from typing import Annotated, List, Sequence
+from typing import List, Sequence
 
 from xdsl.dialects.builtin import IndexType, IntegerType
 from xdsl.ir import Attribute, Block, Dialect, Operation, Region, SSAValue
 from xdsl.irdl import (
     AnyAttr,
     AttrSizedOperandSegments,
-    Operand,
-    SingleBlockRegion,
-    VarOperand,
-    VarOpResult,
+    OperandDef,
+    RegionDef,
+    VarOperandDef,
+    VarResultDef,
     irdl_op_definition,
     IRDLOperation,
 )
@@ -20,12 +20,12 @@ from xdsl.utils.exceptions import VerifyException
 @irdl_op_definition
 class If(IRDLOperation):
     name: str = "scf.if"
-    output: Annotated[VarOpResult, AnyAttr()]
-    cond: Annotated[Operand, IntegerType(1)]
+    output = VarResultDef()
+    cond = OperandDef(IntegerType(1))
 
-    true_region: Region
+    true_region = RegionDef()
     # TODO this should be optional under certain conditions
-    false_region: Region
+    false_region = RegionDef()
 
     @staticmethod
     def get(
@@ -47,7 +47,7 @@ class If(IRDLOperation):
 @irdl_op_definition
 class Yield(IRDLOperation):
     name: str = "scf.yield"
-    arguments: Annotated[VarOperand, AnyAttr()]
+    arguments = VarOperandDef()
 
     @staticmethod
     def get(*operands: SSAValue | Operation) -> Yield:
@@ -57,8 +57,8 @@ class Yield(IRDLOperation):
 @irdl_op_definition
 class Condition(IRDLOperation):
     name: str = "scf.condition"
-    cond: Annotated[Operand, IntegerType(1)]
-    arguments: Annotated[VarOperand, AnyAttr()]
+    cond = OperandDef(IntegerType(1))
+    arguments = VarOperandDef()
 
     @staticmethod
     def get(cond: SSAValue | Operation, *output_ops: SSAValue | Operation) -> Condition:
@@ -69,15 +69,15 @@ class Condition(IRDLOperation):
 class For(IRDLOperation):
     name: str = "scf.for"
 
-    lb: Annotated[Operand, IndexType]
-    ub: Annotated[Operand, IndexType]
-    step: Annotated[Operand, IndexType]
+    lb = OperandDef(IndexType)
+    ub = OperandDef(IndexType)
+    step = OperandDef(IndexType)
 
-    iter_args: Annotated[VarOperand, AnyAttr()]
+    iter_args = VarOperandDef()
 
-    res: Annotated[VarOpResult, AnyAttr()]
+    res = VarResultDef()
 
-    body: SingleBlockRegion
+    body = RegionDef(single_block=True)
 
     def verify_(self):
         if (len(self.iter_args) + 1) != len(self.body.block.args):
@@ -137,13 +137,13 @@ class For(IRDLOperation):
 @irdl_op_definition
 class ParallelOp(IRDLOperation):
     name = "scf.parallel"
-    lowerBound: Annotated[VarOperand, IndexType]
-    upperBound: Annotated[VarOperand, IndexType]
-    step: Annotated[VarOperand, IndexType]
-    initVals: Annotated[VarOperand, AnyAttr()]
-    res: Annotated[VarOpResult, AnyAttr()]
+    lowerBound = VarOperandDef(IndexType)
+    upperBound = VarOperandDef(IndexType)
+    step = VarOperandDef(IndexType)
+    initVals = VarOperandDef()
+    res = VarResultDef()
 
-    body: SingleBlockRegion
+    body = RegionDef(single_block=True)
 
     irdl_options = [AttrSizedOperandSegments()]
 
@@ -270,9 +270,9 @@ class ParallelOp(IRDLOperation):
 @irdl_op_definition
 class ReduceOp(IRDLOperation):
     name: str = "scf.reduce"
-    argument: Annotated[Operand, AnyAttr()]
+    argument = OperandDef(AnyAttr())
 
-    body: SingleBlockRegion
+    body = RegionDef(single_block=True)
 
     @staticmethod
     def get(
@@ -318,7 +318,7 @@ class ReduceOp(IRDLOperation):
 @irdl_op_definition
 class ReduceReturnOp(IRDLOperation):
     name: str = "scf.reduce.return"
-    result: Annotated[Operand, AnyAttr()]
+    result = OperandDef(AnyAttr())
 
     @staticmethod
     def get(
@@ -343,11 +343,11 @@ class ReduceReturnOp(IRDLOperation):
 @irdl_op_definition
 class While(IRDLOperation):
     name: str = "scf.while"
-    arguments: Annotated[VarOperand, AnyAttr()]
+    arguments = VarOperandDef()
 
-    res: Annotated[VarOpResult, AnyAttr()]
-    before_region: Region
-    after_region: Region
+    res = VarResultDef()
+    before_region = RegionDef()
+    after_region = RegionDef()
 
     # TODO verify dependencies between scf.condition, scf.yield and the regions
     def verify_(self):

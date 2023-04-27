@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import TYPE_CHECKING, Annotated
+from typing import TYPE_CHECKING
 
 from xdsl.dialects.builtin import (
     StringAttr,
@@ -22,20 +22,20 @@ from xdsl.ir import (
     ParametrizedAttribute,
     Attribute,
     Dialect,
-    OpResult,
     Operation,
     SSAValue,
     Region,
 )
 from xdsl.irdl import (
-    OpAttr,
-    Operand,
+    OperandDef,
+    OptAttributeDef,
     ParameterDef,
     AnyAttr,
+    RegionDef,
+    ResultDef,
+    VarOperandDef,
     irdl_attr_definition,
     irdl_op_definition,
-    VarOperand,
-    OptOpAttr,
     IRDLOperation,
 )
 from xdsl.utils.exceptions import VerifyException
@@ -224,12 +224,12 @@ class LinkageAttr(ParametrizedAttribute):
 class GEPOp(IRDLOperation):
     name = "llvm.getelementptr"
 
-    ptr: Annotated[Operand, LLVMPointerType]
-    ssa_indices: Annotated[VarOperand, IntegerType]
-    elem_type: OptOpAttr[Attribute]
-    rawConstantIndices: OpAttr[DenseArrayBase]
-    inbounds: OptOpAttr[UnitAttr]
-    result: Annotated[OpResult, LLVMPointerType]
+    ptr = OperandDef(LLVMPointerType)
+    ssa_indices = VarOperandDef(IntegerType)
+    elem_type = OptAttributeDef(Attribute)
+    rawConstantIndices = OptAttributeDef(DenseArrayBase)
+    inbounds = OptAttributeDef(UnitAttr)
+    result = ResultDef(LLVMPointerType)
 
     @staticmethod
     def get(
@@ -283,11 +283,11 @@ class GEPOp(IRDLOperation):
 class AllocaOp(IRDLOperation):
     name = "llvm.alloca"
 
-    size: Annotated[Operand, IntegerType]
+    size = OperandDef(IntegerType)
 
-    alignment: OpAttr[AnyIntegerAttr]
+    alignment = OptAttributeDef(AnyIntegerAttr)
 
-    res: OpResult
+    res = ResultDef()
 
     @staticmethod
     def get(
@@ -314,9 +314,9 @@ class AllocaOp(IRDLOperation):
 class IntToPtrOp(IRDLOperation):
     name = "llvm.inttoptr"
 
-    input: Annotated[Operand, IntegerType]
+    input = OperandDef(IntegerType)
 
-    output: Annotated[OpResult, LLVMPointerType]
+    output = ResultDef(LLVMPointerType)
 
     @staticmethod
     def get(input: SSAValue | Operation, ptr_type: Attribute | None = None):
@@ -331,9 +331,9 @@ class IntToPtrOp(IRDLOperation):
 class PtrToIntOp(IRDLOperation):
     name = "llvm.ptrtoint"
 
-    input: Annotated[Operand, LLVMPointerType]
+    input = OperandDef(LLVMPointerType)
 
-    output: Annotated[OpResult, IntegerType]
+    output = ResultDef(IntegerType)
 
     @staticmethod
     def get(arg: SSAValue | Operation, int_type: Attribute = i64):
@@ -344,9 +344,9 @@ class PtrToIntOp(IRDLOperation):
 class LoadOp(IRDLOperation):
     name = "llvm.load"
 
-    ptr: Annotated[Operand, LLVMPointerType]
+    ptr = OperandDef(LLVMPointerType)
 
-    dereferenced_value: OpResult
+    dereferenced_value = ResultDef()
 
     @staticmethod
     def get(ptr: SSAValue | Operation, result_type: Attribute | None = None):
@@ -367,13 +367,13 @@ class LoadOp(IRDLOperation):
 class StoreOp(IRDLOperation):
     name = "llvm.store"
 
-    value: Operand
-    ptr: Annotated[Operand, LLVMPointerType]
+    value = OperandDef()
+    ptr = OperandDef(LLVMPointerType)
 
-    alignment: OptOpAttr[IntegerAttr[IntegerType]]
-    ordering: OptOpAttr[IntegerAttr[IntegerType]]
-    volatile_: OptOpAttr[UnitAttr]
-    nontemporal: OptOpAttr[UnitAttr]
+    alignment = OptAttributeDef(IntegerAttr[IntegerType])
+    ordering = OptAttributeDef(IntegerAttr[IntegerType])
+    volatile_ = OptAttributeDef(UnitAttr)
+    nontemporal = OptAttributeDef(UnitAttr)
 
     @staticmethod
     def get(
@@ -406,7 +406,7 @@ class StoreOp(IRDLOperation):
 class NullOp(IRDLOperation):
     name = "llvm.mlir.null"
 
-    nullptr: Annotated[OpResult, LLVMPointerType]
+    nullptr = ResultDef(LLVMPointerType)
 
     @staticmethod
     def get(ptr_type: LLVMPointerType | None = None):
@@ -421,48 +421,48 @@ class NullOp(IRDLOperation):
 class LLVMExtractValue(IRDLOperation):
     name = "llvm.extractvalue"
 
-    position: OpAttr[DenseArrayBase]
-    container: Annotated[Operand, AnyAttr()]
+    position = OptAttributeDef(DenseArrayBase)
+    container = OperandDef(AnyAttr())
 
-    res: Annotated[OpResult, AnyAttr()]
+    res = ResultDef(AnyAttr())
 
 
 @irdl_op_definition
 class LLVMInsertValue(IRDLOperation):
     name = "llvm.insertvalue"
 
-    position: OpAttr[DenseArrayBase]
-    container: Annotated[Operand, AnyAttr()]
-    value: Annotated[Operand, AnyAttr()]
+    position = OptAttributeDef(DenseArrayBase)
+    container = OperandDef(AnyAttr())
+    value = OperandDef(AnyAttr())
 
-    res: Annotated[OpResult, AnyAttr()]
+    res = ResultDef(AnyAttr())
 
 
 @irdl_op_definition
 class LLVMMLIRUndef(IRDLOperation):
     name = "llvm.mlir.undef"
 
-    res: Annotated[OpResult, AnyAttr()]
+    res = ResultDef(AnyAttr())
 
 
 @irdl_op_definition
 class GlobalOp(IRDLOperation):
     name = "llvm.mlir.global"
 
-    global_type: OpAttr[Attribute]
-    constant: OptOpAttr[UnitAttr]
-    sym_name: OpAttr[StringAttr]
-    linkage: OpAttr[LinkageAttr]
-    dso_local: OptOpAttr[UnitAttr]
-    thread_local_: OptOpAttr[UnitAttr]
-    value: OptOpAttr[Attribute]
-    alignment: OptOpAttr[AnyIntegerAttr]
-    addr_space: OpAttr[AnyIntegerAttr]
-    unnamed_addr: OptOpAttr[AnyIntegerAttr]
-    section: OptOpAttr[StringAttr]
+    global_type = OptAttributeDef(Attribute)
+    constant = OptAttributeDef(UnitAttr)
+    sym_name = OptAttributeDef(StringAttr)
+    linkage = OptAttributeDef(LinkageAttr)
+    dso_local = OptAttributeDef(UnitAttr)
+    thread_local_ = OptAttributeDef(UnitAttr)
+    value = OptAttributeDef(Attribute)
+    alignment = OptAttributeDef(AnyIntegerAttr)
+    addr_space = OptAttributeDef(AnyIntegerAttr)
+    unnamed_addr = OptAttributeDef(AnyIntegerAttr)
+    section = OptAttributeDef(StringAttr)
 
     # This always needs an empty region as it is in the top level module definition
-    body: Region
+    body = RegionDef()
 
     @staticmethod
     def get(
@@ -521,8 +521,8 @@ class GlobalOp(IRDLOperation):
 class AddressOfOp(IRDLOperation):
     name = "llvm.mlir.addressof"
 
-    global_name: OpAttr[SymbolRefAttr]
-    result: Annotated[OpResult, LLVMPointerType]
+    global_name = OptAttributeDef(SymbolRefAttr)
+    result = ResultDef(LLVMPointerType)
 
     @staticmethod
     def get(

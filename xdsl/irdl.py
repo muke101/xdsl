@@ -501,11 +501,11 @@ class OptionalDef(VariadicDef):
 class OperandDefBase(IRDLDef):
     """An IRDL operand (variadic or not) definition."""
 
-    constr: AttrConstraint
+    constraint: AttrConstraint
     """The operand constraint."""
 
-    def __init__(self, typ: Any):
-        self.constr = irdl_to_attr_constraint(typ)
+    def __init__(self, typ: Any = Attribute):
+        self.constraint = irdl_to_attr_constraint(typ)
 
 
 @dataclass(init=False)
@@ -545,11 +545,11 @@ class OptOperandDef(OperandDefBase, OptionalDef):
 class ResultDefBase(IRDLDef):
     """An IRDL result (variadic or not) definition."""
 
-    constr: AttrConstraint
+    constraint: AttrConstraint
     """The result constraint."""
 
-    def __init__(self, typ: Any):
-        self.constr = irdl_to_attr_constraint(typ)
+    def __init__(self, typ: Any = Attribute):
+        self.constraint = irdl_to_attr_constraint(typ)
 
 
 @dataclass(init=False)
@@ -630,7 +630,7 @@ class OptRegionDef(RegionDefBase, OptionalDef):
 
 
 @dataclass(init=False)
-class AttributeDefBase(Generic[AttributeCovT]):
+class AttributeDefBase(Generic[AttributeCovT], IRDLDef):
     """An IRDL attribute definition. Should not be used directly."""
 
     constraint: AttrConstraint
@@ -640,42 +640,44 @@ class AttributeDefBase(Generic[AttributeCovT]):
         self.constraint = irdl_to_attr_constraint(type)
 
 
-class AOUE(Attribute):
-    pass
-
-
-class AOUE2(Attribute):
-    pass
-
-
 @dataclass(init=False)
-class AttributeDef(AttributeDefBase[AttributeInvT]):
+class _AttributeDef(AttributeDefBase[AttributeInvT]):
     """An IRDL attribute definition."""
 
     def __get__(
-        self: AttributeDef[AttributeInvT], object: Any, objtype: type[Any] | None = None
+        self: _AttributeDef[AttributeInvT],
+        object: Any,
+        objtype: type[Any] | None = None,
     ) -> AttributeInvT:
         assert False, "AttributeDef should not be used directly"
 
-    def __set__(self: AttributeDef[AttributeInvT], object: Any, value: AttributeInvT):
+    def __set__(self: _AttributeDef[AttributeInvT], object: Any, value: AttributeInvT):
         assert False, "AttributeDef should not be used directly"
 
 
+def AttributeDef(constraint: type[AttributeInvT]) -> _AttributeDef[AttributeInvT]:
+    return _AttributeDef(constraint)
+
+
 @dataclass(init=False)
-class OptAttributeDef(AttributeDefBase[AttributeInvT]):
+class _OptAttributeDef(AttributeDefBase[AttributeInvT]):
     """An IRDL attribute definition for an optional attribute."""
 
     def __get__(
-        self: OptAttributeDef[AttributeInvT],
+        self: _OptAttributeDef[AttributeInvT],
         object: Any,
         objtype: type[Any] | None = None,
     ) -> AttributeInvT | None:
         assert False, "OptAttributeDef should not be used directly"
 
     def __set__(
-        self: OptAttributeDef[AttributeInvT], object: Any, value: AttributeInvT | None
+        self: _OptAttributeDef[AttributeInvT], object: Any, value: AttributeInvT | None
     ):
         assert False, "OptAttributeDef should not be used directly"
+
+
+def OptAttributeDef(constraint: type[AttributeInvT]) -> _OptAttributeDef[AttributeInvT]:
+    return _OptAttributeDef(constraint)
 
 
 operation_fields = get_type_hints(Operation).keys()
@@ -780,7 +782,7 @@ class OpDef:
         # Verify attributes.
         for attr_name, attr_def in self.attributes.items():
             if attr_name not in op.attributes:
-                if isinstance(attr_def, OptAttributeDef):
+                if isinstance(attr_def, _OptAttributeDef):
                     continue
                 raise VerifyException(f"attribute {attr_name} expected")
             attr_def.constraint.verify(op.attributes[attr_name])
@@ -1333,7 +1335,7 @@ def irdl_op_definition(cls: type[_OpT]) -> type[_OpT]:
         return property(field_getter, field_setter)
 
     for attribute_name, attr_def in op_def.attributes.items():
-        if isinstance(attr_def, OptAttributeDef):
+        if isinstance(attr_def, _OptAttributeDef):
             new_attrs[attribute_name] = optional_attribute_field(attribute_name)
         else:
             new_attrs[attribute_name] = attribute_field(attribute_name)

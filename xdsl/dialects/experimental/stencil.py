@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Sequence, TypeVar, Any, cast
+from typing import Annotated, Sequence, TypeVar, Any, cast
 
 from xdsl.dialects import builtin
 from xdsl.dialects import memref
@@ -20,6 +20,13 @@ from xdsl.ir import Operation, Dialect, TypeAttribute
 from xdsl.ir import SSAValue
 
 from xdsl.irdl import (
+    AttributeDef,
+    OperandDef,
+    OptAttributeDef,
+    RegionDef,
+    ResultDef,
+    VarOperandDef,
+    VarResultDef,
     irdl_attr_definition,
     irdl_op_definition,
     ParameterDef,
@@ -29,13 +36,6 @@ from xdsl.irdl import (
     VerifyException,
     Generic,
     AnyOf,
-    Annotated,
-    Operand,
-    OpAttr,
-    OpResult,
-    VarOperand,
-    VarOpResult,
-    OptOpAttr,
     AttrSizedOperandSegments,
     Block,
     IRDLOperation,
@@ -243,7 +243,7 @@ class IndexAttr(ParametrizedAttribute):
 @dataclass(frozen=True)
 class LoopAttr(ParametrizedAttribute):
     name = "stencil.loop"
-    shape = Annotated[ArrayAttr[IntAttr], ArrayLength(4)]
+    shape = ParameterDef[Annotated[ArrayAttr[IntAttr], ArrayLength(4)]]
 
 
 # Operations
@@ -257,10 +257,10 @@ class CastOp(IRDLOperation):
     """
 
     name: str = "stencil.cast"
-    field: Annotated[Operand, FieldType]
-    lb: OpAttr[IndexAttr]
-    ub: OpAttr[IndexAttr]
-    result: Annotated[OpResult, FieldType]
+    field = OperandDef(FieldType)
+    lb = AttributeDef(IndexAttr)
+    ub = AttributeDef(IndexAttr)
+    result = ResultDef(FieldType)
 
     @staticmethod
     def get(
@@ -287,8 +287,8 @@ class ExternalLoadOp(IRDLOperation):
     """
 
     name: str = "stencil.external_load"
-    field: Annotated[Operand, Attribute]
-    result: Annotated[OpResult, FieldType | memref.MemRefType]
+    field = OperandDef(Attribute)
+    result = ResultDef(FieldType | memref.MemRefType)
 
     @staticmethod
     def get(
@@ -308,8 +308,8 @@ class ExternalStoreOp(IRDLOperation):
     """
 
     name: str = "stencil.external_store"
-    temp: Annotated[Operand, FieldType]
-    field: Annotated[Operand, Attribute]
+    temp = OperandDef(FieldType)
+    field = OperandDef(Attribute)
 
 
 @irdl_op_definition
@@ -324,9 +324,9 @@ class IndexOp(IRDLOperation):
     """
 
     name: str = "stencil.index"
-    dim: OpAttr[IntegerType]
-    offset: OpAttr[IndexAttr]
-    idx: Annotated[OpResult, builtin.IndexType]
+    dim = AttributeDef(IntegerType)
+    offset = AttributeDef(IndexAttr)
+    idx = ResultDef(builtin.IndexType)
 
 
 @irdl_op_definition
@@ -340,9 +340,9 @@ class AccessOp(IRDLOperation):
     """
 
     name: str = "stencil.access"
-    temp: Annotated[Operand, TempType]
-    offset: OpAttr[IndexAttr]
-    res: Annotated[OpResult, Attribute]
+    temp = OperandDef(TempType)
+    offset = AttributeDef(IndexAttr)
+    res = ResultDef(Attribute)
 
     @staticmethod
     def get(temp: SSAValue | Operation, offset: Sequence[int]):
@@ -378,11 +378,11 @@ class DynAccessOp(IRDLOperation):
     """
 
     name: str = "stencil.dyn_access"
-    temp: Annotated[Operand, TempType]
-    offset: OpAttr[IndexAttr]
-    lb: OpAttr[IndexAttr]
-    ub: OpAttr[IndexAttr]
-    res: Annotated[OpResult, ElementType]
+    temp = OperandDef(TempType)
+    offset = AttributeDef(IndexAttr)
+    lb = AttributeDef(IndexAttr)
+    ub = AttributeDef(IndexAttr)
+    res = ResultDef(ElementType)
 
 
 @irdl_op_definition
@@ -395,10 +395,10 @@ class LoadOp(IRDLOperation):
     """
 
     name: str = "stencil.load"
-    field: Annotated[Operand, FieldType]
-    lb: OptOpAttr[IndexAttr]
-    ub: OptOpAttr[IndexAttr]
-    res: Annotated[OpResult, TempType]
+    field = OperandDef(FieldType)
+    lb = OptAttributeDef(IndexAttr)
+    ub = OptAttributeDef(IndexAttr)
+    res = ResultDef(TempType)
 
     @staticmethod
     def get(field: SSAValue | Operation):
@@ -426,10 +426,10 @@ class BufferOp(IRDLOperation):
     """
 
     name: str = "stencil.buffer"
-    temp: Annotated[Operand, TempType]
-    lb: OpAttr[IndexAttr]
-    ub: OpAttr[IndexAttr]
-    res: Annotated[OpResult, TempType]
+    temp = OperandDef(TempType)
+    lb = AttributeDef(IndexAttr)
+    ub = AttributeDef(IndexAttr)
+    res = ResultDef(TempType)
 
 
 @irdl_op_definition
@@ -442,10 +442,10 @@ class StoreOp(IRDLOperation):
     """
 
     name: str = "stencil.store"
-    temp: Annotated[Operand, TempType]
-    field: Annotated[Operand, FieldType]
-    lb: OpAttr[IndexAttr]
-    ub: OpAttr[IndexAttr]
+    temp = OperandDef(TempType)
+    field = OperandDef(FieldType)
+    lb = AttributeDef(IndexAttr)
+    ub = AttributeDef(IndexAttr)
 
     @staticmethod
     def get(
@@ -471,11 +471,11 @@ class ApplyOp(IRDLOperation):
     """
 
     name: str = "stencil.apply"
-    args: Annotated[VarOperand, Attribute]
-    lb: OptOpAttr[IndexAttr]
-    ub: OptOpAttr[IndexAttr]
-    region: Region
-    res: Annotated[VarOpResult, TempType]
+    args = VarOperandDef(Attribute)
+    lb = OptAttributeDef(IndexAttr)
+    ub = OptAttributeDef(IndexAttr)
+    region = RegionDef()
+    res = VarResultDef(TempType)
 
     @staticmethod
     def get(
@@ -522,8 +522,8 @@ class StoreResultOp(IRDLOperation):
     """
 
     name: str = "stencil.store_result"
-    args: Annotated[VarOperand, Attribute]
-    res: Annotated[OpResult, ResultType]
+    args = VarOperandDef(Attribute)
+    res = ResultDef(ResultType)
 
 
 @irdl_op_definition
@@ -542,7 +542,7 @@ class ReturnOp(IRDLOperation):
     """
 
     name: str = "stencil.return"
-    arg: Annotated[VarOperand, ResultType | AnyFloat]
+    arg = VarOperandDef(ResultType | AnyFloat)
 
     @staticmethod
     def get(res: Sequence[SSAValue | Operation]):
@@ -563,21 +563,21 @@ class CombineOp(IRDLOperation):
     """
 
     name: str = "stencil.combine"
-    dim: Annotated[
-        Operand, IntegerType
-    ]  # TODO: how to use the ArrayLength constraint here? 0 <= dim <= 2
-    index: Annotated[Operand, IntegerType]
+    dim = OperandDef(
+        IntegerType
+    )  # TODO: how to use the ArrayLength constraint here? 0 <= dim <= 2
+    index = OperandDef(IntegerType)
 
-    lower: Annotated[VarOperand, TempType]
-    upper: Annotated[VarOperand, TempType]
-    lower_ext: Annotated[VarOperand, TempType]
-    upper_ext: Annotated[VarOperand, TempType]
+    lower = VarOperandDef(TempType)
+    upper = VarOperandDef(TempType)
+    lower_ext = VarOperandDef(TempType)
+    upper_ext = VarOperandDef(TempType)
 
-    lb: OptOpAttr[IndexAttr]
-    ub: OptOpAttr[IndexAttr]
+    lb = OptAttributeDef(IndexAttr)
+    ub = OptAttributeDef(IndexAttr)
 
-    region: Region
-    res: VarOpResult
+    region = RegionDef()
+    res = VarResultDef()
 
     irdl_options = [AttrSizedOperandSegments()]
 
@@ -586,12 +586,12 @@ class CombineOp(IRDLOperation):
 class HaloSwapOp(IRDLOperation):
     name = "stencil.halo_swap"
 
-    input_stencil: Annotated[Operand, TempType]
+    input_stencil = OperandDef(TempType)
 
-    buff_lb: OptOpAttr[IndexAttr]
-    buff_ub: OptOpAttr[IndexAttr]
-    core_lb: OptOpAttr[IndexAttr]
-    core_ub: OptOpAttr[IndexAttr]
+    buff_lb = OptAttributeDef(IndexAttr)
+    buff_ub = OptAttributeDef(IndexAttr)
+    core_lb = OptAttributeDef(IndexAttr)
+    core_ub = OptAttributeDef(IndexAttr)
 
     @staticmethod
     def get(input_stencil: SSAValue | Operation):

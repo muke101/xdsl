@@ -1,14 +1,13 @@
 from __future__ import annotations
 
-from typing import Annotated, List, Union
+from typing import List, Union
 
 from xdsl.dialects.builtin import IntegerType
 from xdsl.ir import SSAValue, Operation, Block, Dialect
 from xdsl.irdl import (
+    OperandDef,
+    VarOperandDef,
     irdl_op_definition,
-    VarOperand,
-    AnyAttr,
-    Operand,
     AttrSizedOperandSegments,
     IRDLOperation,
 )
@@ -18,7 +17,7 @@ from xdsl.irdl import (
 class Branch(IRDLOperation):
     name: str = "cf.br"
 
-    arguments: Annotated[VarOperand, AnyAttr()]
+    arguments = VarOperandDef()
 
     @staticmethod
     def get(block: Block, *ops: Union[Operation, SSAValue]) -> Branch:
@@ -29,9 +28,9 @@ class Branch(IRDLOperation):
 class ConditionalBranch(IRDLOperation):
     name: str = "cf.cond_br"
 
-    cond: Annotated[Operand, IntegerType(1)]
-    then_arguments: Annotated[VarOperand, AnyAttr()]
-    else_arguments: Annotated[VarOperand, AnyAttr()]
+    cond = OperandDef(IntegerType(1))
+    then_arguments = VarOperandDef()
+    else_arguments = VarOperandDef()
 
     irdl_options = [AttrSizedOperandSegments()]
 

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Annotated, Generic, Sequence, TypeVar
+from typing import Generic, Sequence, TypeVar
 
 from xdsl.dialects.builtin import ArrayAttr, IntegerAttr, IntegerType, StringAttr
 from xdsl.ir import (
@@ -8,21 +8,22 @@ from xdsl.ir import (
     Block,
     Dialect,
     TypeAttribute,
-    OpResult,
     ParametrizedAttribute,
     Region,
     SSAValue,
 )
 from xdsl.irdl import (
     AttrSizedOperandSegments,
-    OpAttr,
-    Operand,
-    OptOpAttr,
-    OptOperand,
-    OptRegion,
+    AttributeDef,
+    OperandDef,
+    OptAttributeDef,
+    OptOperandDef,
+    OptRegionDef,
     ParameterDef,
-    VarOpResult,
-    VarOperand,
+    RegionDef,
+    ResultDef,
+    VarOperandDef,
+    VarResultDef,
     irdl_attr_definition,
     irdl_op_definition,
     IRDLOperation,
@@ -74,8 +75,8 @@ class ApplyNativeConstraintOp(IRDLOperation):
 
     name: str = "pdl.apply_native_constraint"
     # https://github.com/xdslproject/xdsl/issues/98
-    # name: OpAttr[StringAttr]
-    args: Annotated[VarOperand, AnyPDLType]
+    # name = AttributeDef(StringAttr)
+    args = VarOperandDef(AnyPDLType)
 
     def verify_(self) -> None:
         if "name" not in self.attributes:
@@ -99,9 +100,9 @@ class ApplyNativeRewriteOp(IRDLOperation):
 
     name: str = "pdl.apply_native_rewrite"
     # https://github.com/xdslproject/xdsl/issues/98
-    # name: OpAttr[StringAttr]
-    args: Annotated[VarOperand, AnyPDLType]
-    res: Annotated[VarOpResult, AnyPDLType]
+    # name = AttributeDef(StringAttr)
+    args = VarOperandDef(AnyPDLType)
+    res = VarResultDef(AnyPDLType)
 
     def verify_(self) -> None:
         if "name" not in self.attributes:
@@ -128,9 +129,9 @@ class AttributeOp(IRDLOperation):
     """
 
     name: str = "pdl.attribute"
-    value: OptOpAttr[Attribute]
-    valueType: Annotated[OptOperand, TypeType]
-    output: Annotated[OpResult, AttributeType]
+    value = OptAttributeDef(Attribute)
+    valueType = OptOperandDef(TypeType)
+    output = ResultDef(AttributeType)
 
     @staticmethod
     def get(
@@ -157,7 +158,7 @@ class EraseOp(IRDLOperation):
     """
 
     name: str = "pdl.erase"
-    opValue: Annotated[Operand, OperationType]
+    opValue = OperandDef(OperationType)
 
     @staticmethod
     def get(opValue: SSAValue) -> EraseOp:
@@ -171,8 +172,8 @@ class OperandOp(IRDLOperation):
     """
 
     name: str = "pdl.operand"
-    valueType: Annotated[OptOperand, TypeType]
-    value: Annotated[OpResult, ValueType]
+    valueType = OptOperandDef(TypeType)
+    value = ResultDef(ValueType)
 
     @staticmethod
     def get(valueType: SSAValue | None = None) -> OperandOp:
@@ -190,8 +191,8 @@ class OperandsOp(IRDLOperation):
     """
 
     name: str = "pdl.operands"
-    valueType: Annotated[Operand, RangeType[TypeType]]
-    value: Annotated[OpResult, RangeType[ValueType]]
+    valueType = OperandDef(RangeType[TypeType])
+    value = ResultDef(RangeType[ValueType])
 
 
 @irdl_op_definition
@@ -201,13 +202,13 @@ class OperationOp(IRDLOperation):
     """
 
     name: str = "pdl.operation"
-    opName: OptOpAttr[StringAttr]
-    attributeValueNames: OpAttr[ArrayAttr[StringAttr]]
+    opName = OptAttributeDef(StringAttr)
+    attributeValueNames = AttributeDef(ArrayAttr[StringAttr])
 
-    operandValues: Annotated[VarOperand, ValueType | RangeType[ValueType]]
-    attributeValues: Annotated[VarOperand, AttributeType]
-    typeValues: Annotated[VarOperand, TypeType | RangeType[TypeType]]
-    op: Annotated[OpResult, OperationType]
+    operandValues = VarOperandDef(ValueType | RangeType[ValueType])
+    attributeValues = VarOperandDef(AttributeType)
+    typeValues = VarOperandDef(TypeType | RangeType[TypeType])
+    op = ResultDef(OperationType)
 
     irdl_options = [AttrSizedOperandSegments()]
 
@@ -242,9 +243,9 @@ class PatternOp(IRDLOperation):
     """
 
     name: str = "pdl.pattern"
-    benefit: OpAttr[IntegerAttr[IntegerType]]
-    sym_name: OptOpAttr[StringAttr]
-    body: Region
+    benefit = AttributeDef(IntegerAttr[IntegerType])
+    sym_name = OptAttributeDef(StringAttr)
+    body = RegionDef()
 
     @staticmethod
     def get(
@@ -277,8 +278,8 @@ class RangeOp(IRDLOperation):
     """
 
     name: str = "pdl.range"
-    arguments: Annotated[VarOperand, AnyPDLType | RangeType[AnyPDLType]]
-    result: Annotated[OpResult, RangeType[AnyPDLType]]
+    arguments = VarOperandDef(AnyPDLType | RangeType[AnyPDLType])
+    result = ResultDef(RangeType[AnyPDLType])
 
     def verify_(self) -> None:
         def get_type_or_elem_type(arg: SSAValue) -> Attribute:
@@ -315,9 +316,9 @@ class ReplaceOp(IRDLOperation):
     """
 
     name: str = "pdl.replace"
-    opValue: Annotated[Operand, OperationType]
-    replOperation: Annotated[OptOperand, OperationType]
-    replValues: Annotated[VarOperand, ValueType | ArrayAttr[ValueType]]
+    opValue = OperandDef(OperationType)
+    replOperation = OptOperandDef(OperationType)
+    replValues = VarOperandDef(ValueType | ArrayAttr[ValueType])
 
     irdl_options = [AttrSizedOperandSegments()]
 
@@ -359,9 +360,9 @@ class ResultOp(IRDLOperation):
     """
 
     name: str = "pdl.result"
-    index: OpAttr[IntegerAttr[IntegerType]]
-    parent_: Annotated[Operand, OperationType]
-    val: Annotated[OpResult, ValueType]
+    index = AttributeDef(IntegerAttr[IntegerType])
+    parent_ = OperandDef(OperationType)
+    val = ResultDef(ValueType)
 
     @staticmethod
     def get(index: IntegerAttr[IntegerType], parent: SSAValue) -> ResultOp:
@@ -377,9 +378,9 @@ class ResultsOp(IRDLOperation):
     """
 
     name: str = "pdl.results"
-    index: OpAttr[IntegerAttr[IntegerType]]
-    parent_: Annotated[Operand, OperationType]
-    val: Annotated[OpResult, ValueType | ArrayAttr[ValueType]]
+    index = AttributeDef(IntegerAttr[IntegerType])
+    parent_ = OperandDef(OperationType)
+    val = ResultDef(ValueType | ArrayAttr[ValueType])
 
 
 @irdl_op_definition
@@ -389,14 +390,14 @@ class RewriteOp(IRDLOperation):
     """
 
     name: str = "pdl.rewrite"
-    root: Annotated[OptOperand, OperationType]
+    root = OptOperandDef(OperationType)
     # name of external rewriter function
     # https://github.com/xdslproject/xdsl/issues/98
-    # name: OptOpAttr[StringAttr]
+    # name = OptAttributeDef(StringAttr)
     # parameters of external rewriter function
-    externalArgs: Annotated[VarOperand, AnyPDLType]
+    externalArgs = VarOperandDef(AnyPDLType)
     # body of inline rewriter function
-    body: OptRegion
+    body = OptRegionDef()
 
     irdl_options = [AttrSizedOperandSegments()]
 
@@ -452,8 +453,8 @@ class TypeOp(IRDLOperation):
     """
 
     name: str = "pdl.type"
-    constantType: OptOpAttr[Attribute]
-    result: Annotated[OpResult, TypeType]
+    constantType = OptAttributeDef(Attribute)
+    result = ResultDef(TypeType)
 
     @staticmethod
     def get(constantType: TypeType | None = None) -> TypeOp:
@@ -469,8 +470,8 @@ class TypesOp(IRDLOperation):
     """
 
     name: str = "pdl.types"
-    constantTypes: Annotated[OptOperand, ArrayAttr[TypeType]]
-    result: Annotated[OpResult, RangeType[TypeType]]
+    constantTypes = OptOperandDef(ArrayAttr[TypeType])
+    result = ResultDef(RangeType[TypeType])
 
 
 PDL = Dialect(

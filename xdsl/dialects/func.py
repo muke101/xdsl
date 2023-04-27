@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Annotated, List, Union
+from typing import List, Union
 
 from xdsl.dialects.builtin import StringAttr, FunctionType, SymbolRefAttr
 from xdsl.ir import (
@@ -12,12 +12,12 @@ from xdsl.ir import (
     BlockArgument,
 )
 from xdsl.irdl import (
-    VarOpResult,
+    AttributeDef,
+    OptAttributeDef,
+    RegionDef,
+    VarOperandDef,
+    VarResultDef,
     irdl_op_definition,
-    VarOperand,
-    AnyAttr,
-    OpAttr,
-    OptOpAttr,
     IRDLOperation,
 )
 from xdsl.utils.exceptions import VerifyException
@@ -27,10 +27,10 @@ from xdsl.utils.exceptions import VerifyException
 class FuncOp(IRDLOperation):
     name: str = "func.func"
 
-    body: Region
-    sym_name: OpAttr[StringAttr]
-    function_type: OpAttr[FunctionType]
-    sym_visibility: OptOpAttr[StringAttr]
+    body = RegionDef()
+    sym_name = AttributeDef(StringAttr)
+    function_type = AttributeDef(FunctionType)
+    sym_visibility = OptAttributeDef(StringAttr)
 
     def verify_(self) -> None:
         # TODO: how to verify that there is a terminator?
@@ -168,11 +168,11 @@ class FuncOp(IRDLOperation):
 @irdl_op_definition
 class Call(IRDLOperation):
     name: str = "func.call"
-    arguments: Annotated[VarOperand, AnyAttr()]
-    callee: OpAttr[SymbolRefAttr]
+    arguments = VarOperandDef()
+    callee = AttributeDef(SymbolRefAttr)
 
     # Note: naming this results triggers an ArgumentError
-    res: Annotated[VarOpResult, AnyAttr()]
+    res = VarResultDef()
     # TODO how do we verify that the types are correct?
 
     @staticmethod
@@ -191,7 +191,7 @@ class Call(IRDLOperation):
 @irdl_op_definition
 class Return(IRDLOperation):
     name: str = "func.return"
-    arguments: Annotated[VarOperand, AnyAttr()]
+    arguments = VarOperandDef()
 
     def verify_(self) -> None:
         func_op = self.parent_op()

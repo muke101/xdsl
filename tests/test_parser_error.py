@@ -1,14 +1,11 @@
-from typing import Annotated
-
 from pytest import raises
 
 from xdsl.ir import MLContext
 from xdsl.irdl import (
-    AnyAttr,
+    VarOperandDef,
+    VarResultDef,
     irdl_op_definition,
     IRDLOperation,
-    VarOperand,
-    VarOpResult,
 )
 from xdsl.parser import XDSLParser
 from xdsl.utils.exceptions import ParseError
@@ -17,8 +14,8 @@ from xdsl.utils.exceptions import ParseError
 @irdl_op_definition
 class UnkownOp(IRDLOperation):
     name = "unknown"
-    ops: Annotated[VarOperand, AnyAttr()]
-    res: Annotated[VarOpResult, AnyAttr()]
+    ops = VarOperandDef()
+    res = VarResultDef()
 
 
 def check_error(prog: str, line: int, column: int, message: str):

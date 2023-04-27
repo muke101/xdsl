@@ -1,6 +1,5 @@
 import re
 from io import StringIO
-from typing import Annotated
 from xdsl.ir import (
     Attribute,
     Data,
@@ -10,10 +9,9 @@ from xdsl.ir import (
     Region,
 )
 from xdsl.irdl import (
-    AnyAttr,
     ParameterDef,
-    VarOpResult,
-    VarOperand,
+    VarOperandDef,
+    VarResultDef,
     irdl_attr_definition,
     irdl_op_definition,
     IRDLOperation,
@@ -35,8 +33,8 @@ class AnyOp(IRDLOperation):
     """Operation only used for testing."""
 
     name = "any"
-    op: Annotated[VarOperand, AnyAttr()]
-    res: Annotated[VarOpResult, AnyAttr()]
+    op = VarOperandDef()
+    res = VarResultDef()
 
 
 @irdl_attr_definition

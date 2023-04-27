@@ -1,6 +1,6 @@
 import pytest
 
-from typing import cast, Annotated
+from typing import cast
 
 from xdsl.dialects.arith import Arith, Addi, Subi, Constant
 from xdsl.dialects.builtin import Builtin, IntegerType, i32, i64, IntegerAttr, ModuleOp
@@ -10,7 +10,7 @@ from xdsl.dialects.scf import If
 
 from xdsl.ir import MLContext, Operation, Block, Region, ErasedSSAValue, SSAValue
 from xdsl.parser import XDSLParser
-from xdsl.irdl import IRDLOperation, VarRegion, irdl_op_definition, Operand
+from xdsl.irdl import IRDLOperation, OperandDef, VarRegionDef, irdl_op_definition
 
 
 def test_ops_accessor():
@@ -301,7 +301,7 @@ ModuleOp(
 @irdl_op_definition
 class CustomOpWithMultipleRegions(IRDLOperation):
     name = "test.custom_op_with_multiple_regions"
-    region: VarRegion
+    region = VarRegionDef()
 
 
 def test_region_index_fetch():
@@ -360,7 +360,7 @@ def test_detach_region():
 @irdl_op_definition
 class CustomVerify(IRDLOperation):
     name = "test.custom_verify_op"
-    val: Annotated[Operand, i64]
+    val = OperandDef(i64)
 
     @staticmethod
     def get(val: SSAValue):

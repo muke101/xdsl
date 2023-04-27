@@ -1,12 +1,10 @@
 import pytest
 
-from typing import Annotated
-
 from xdsl.dialects.builtin import i32, StringAttr
 from xdsl.dialects.arith import Constant
 
-from xdsl.ir import Block, OpResult, BlockArgument, SSAValue
-from xdsl.irdl import irdl_op_definition, IRDLOperation
+from xdsl.ir import Block, BlockArgument, SSAValue
+from xdsl.irdl import ResultDef, irdl_op_definition, IRDLOperation
 
 
 def test_ssa():
@@ -27,8 +25,8 @@ def test_ssa():
 class TwoResultOp(IRDLOperation):
     name: str = "test.tworesults"
 
-    res1: Annotated[OpResult, StringAttr]
-    res2: Annotated[OpResult, StringAttr]
+    res1 = ResultDef(StringAttr)
+    res2 = ResultDef(StringAttr)
 
 
 def test_var_mixed_builder():

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import re
 from io import StringIO
-from typing import List, Annotated
+from typing import List
 
 from xdsl.dialects.arith import Arith, Addi, Constant
 from xdsl.dialects.builtin import Builtin, IntAttr, ModuleOp, IntegerType, UnitAttr, i32
@@ -10,18 +10,18 @@ from xdsl.dialects.func import Func
 from xdsl.ir import (
     Attribute,
     MLContext,
-    OpResult,
     Operation,
     ParametrizedAttribute,
     Block,
 )
 from xdsl.irdl import (
-    OptOpAttr,
+    OperandDef,
+    OptAttributeDef,
     ParameterDef,
+    ResultDef,
     irdl_attr_definition,
     irdl_op_definition,
     IRDLOperation,
-    Operand,
 )
 from xdsl.parser import Parser, BaseParser, XDSLParser
 from xdsl.printer import Printer
@@ -84,7 +84,7 @@ builtin.module() {
 class UnitAttrOp(IRDLOperation):
     name = "unit_attr_op"
 
-    parallelize: OptOpAttr[UnitAttr]
+    parallelize = OptAttributeDef(UnitAttr)
 
 
 def test_unit_attr():
@@ -355,9 +355,9 @@ def test_print_custom_block_arg_name():
 @irdl_op_definition
 class PlusCustomFormatOp(IRDLOperation):
     name = "test.add"
-    lhs: Annotated[Operand, IntegerType]
-    rhs: Annotated[Operand, IntegerType]
-    res: Annotated[OpResult, IntegerType]
+    lhs = OperandDef(IntegerType)
+    rhs = OperandDef(IntegerType)
+    res = ResultDef(IntegerType)
 
     @classmethod
     def parse(

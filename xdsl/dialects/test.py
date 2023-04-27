@@ -2,9 +2,9 @@ from __future__ import annotations
 from xdsl.ir import Data, Dialect, TypeAttribute
 
 from xdsl.irdl import (
-    VarOpResult,
-    VarOperand,
-    VarRegion,
+    VarOperandDef,
+    VarRegionDef,
+    VarResultDef,
     irdl_attr_definition,
     irdl_op_definition,
     IRDLOperation,
@@ -24,9 +24,9 @@ class TestOp(IRDLOperation):
 
     name: str = "test.op"
 
-    res: VarOpResult
-    ops: VarOperand
-    regs: VarRegion
+    res = VarResultDef()
+    ops = VarOperandDef()
+    regs = VarRegionDef()
 
 
 @irdl_attr_definition

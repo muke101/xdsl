@@ -2,29 +2,25 @@ from __future__ import annotations
 
 import pytest
 
-from typing import Annotated
-
 from xdsl.dialects.builtin import DenseArrayBase, StringAttr, i32
 from xdsl.dialects.arith import Constant
 
-from xdsl.ir import Block, OpResult, Region
+from xdsl.ir import Block, Region
 from xdsl.irdl import (
     AttrSizedRegionSegments,
-    OptOpResult,
-    OptOperand,
-    OptRegion,
-    OptSingleBlockRegion,
-    Operand,
-    SingleBlockRegion,
-    VarOpResult,
-    VarRegion,
-    VarSingleBlockRegion,
+    AttributeDef,
+    OperandDef,
+    OptAttributeDef,
+    OptOperandDef,
+    OptRegionDef,
+    OptResultDef,
+    RegionDef,
+    VarOperandDef,
+    VarRegionDef,
+    VarResultDef,
     irdl_op_definition,
     AttrSizedResultSegments,
-    VarOperand,
     AttrSizedOperandSegments,
-    OpAttr,
-    OptOpAttr,
     IRDLOperation,
 )
 
@@ -40,7 +36,7 @@ from xdsl.irdl import (
 class ResultOp(IRDLOperation):
     name: str = "test.result_op"
 
-    res: Annotated[OpResult, StringAttr]
+    res = OptResultDef(StringAttr)
 
 
 def test_result_builder():
@@ -58,7 +54,7 @@ def test_result_builder_exception():
 class OptResultOp(IRDLOperation):
     name: str = "test.opt_result_op"
 
-    res: Annotated[OptOpResult, StringAttr]
+    res = OptResultDef(StringAttr)
 
 
 def test_opt_result_builder():
@@ -82,7 +78,7 @@ def test_opt_result_builder_two_args():
 class VarResultOp(IRDLOperation):
     name: str = "test.var_result_op"
 
-    res: Annotated[VarOpResult, StringAttr]
+    res = VarResultDef(StringAttr)
 
 
 def test_var_result_builder():
@@ -95,8 +91,8 @@ def test_var_result_builder():
 class TwoVarResultOp(IRDLOperation):
     name: str = "test.two_var_result_op"
 
-    res1: Annotated[VarOpResult, StringAttr]
-    res2: Annotated[VarOpResult, StringAttr]
+    res1 = VarResultDef(StringAttr)
+    res2 = VarResultDef(StringAttr)
     irdl_options = [AttrSizedResultSegments()]
 
 
@@ -143,9 +139,9 @@ def test_two_var_result_builder2():
 class MixedResultOp(IRDLOperation):
     name: str = "test.mixed"
 
-    res1: Annotated[VarOpResult, StringAttr]
-    res2: Annotated[OpResult, StringAttr]
-    res3: Annotated[VarOpResult, StringAttr]
+    res1 = VarResultDef(StringAttr)
+    res2 = OptResultDef(StringAttr)
+    res3 = VarResultDef(StringAttr)
     irdl_options = [AttrSizedResultSegments()]
 
 
@@ -184,7 +180,7 @@ def test_var_mixed_builder():
 class OperandOp(IRDLOperation):
     name: str = "test.operand_op"
 
-    res: Annotated[Operand, StringAttr]
+    res = OperandDef(StringAttr)
 
 
 def test_operand_builder_operation():
@@ -210,7 +206,7 @@ def test_operand_builder_exception():
 class OptOperandOp(IRDLOperation):
     name: str = "test.opt_operand_op"
 
-    res: Annotated[OptOperand, StringAttr]
+    res = OptOperandDef(StringAttr)
 
 
 def test_opt_operand_builder():
@@ -233,7 +229,7 @@ def test_opt_operand_builder_two_args():
 class VarOperandOp(IRDLOperation):
     name: str = "test.var_operand_op"
 
-    res: Annotated[VarOperand, StringAttr]
+    res = VarOperandDef(StringAttr)
 
 
 def test_var_operand_builder():
@@ -247,8 +243,8 @@ def test_var_operand_builder():
 class TwoVarOperandOp(IRDLOperation):
     name: str = "test.two_var_operand_op"
 
-    res1: Annotated[VarOperand, StringAttr]
-    res2: Annotated[VarOperand, StringAttr]
+    res1 = VarOperandDef(StringAttr)
+    res2 = VarOperandDef(StringAttr)
     irdl_options = [AttrSizedOperandSegments()]
 
 
@@ -283,7 +279,7 @@ def test_two_var_operand_builder2():
 @irdl_op_definition
 class AttrOp(IRDLOperation):
     name: str = "test.two_var_result_op"
-    attr: OpAttr[StringAttr]
+    attr = AttributeDef(StringAttr)
 
 
 def test_attr_op():
@@ -303,7 +299,7 @@ def test_attr_new_attr_op():
 class OptionalAttrOp(IRDLOperation):
     name: str = "test.opt_attr_op"
 
-    opt_attr: OptOpAttr[StringAttr]
+    opt_attr = OptAttributeDef(StringAttr)
 
 
 def test_optional_attr_op_empty():
@@ -325,7 +321,7 @@ def test_optional_attr_op_empty():
 class RegionOp(IRDLOperation):
     name: str = "test.region_op"
 
-    region: Region
+    region = RegionDef()
 
 
 def test_region_op_region():
@@ -365,7 +361,7 @@ def test_singleop_region():
 class SBRegionOp(IRDLOperation):
     name: str = "test.sbregion_op"
 
-    region: SingleBlockRegion
+    region = RegionDef(single_block=True)
 
 
 def test_sbregion_one_block():
@@ -378,7 +374,7 @@ def test_sbregion_one_block():
 class OptRegionOp(IRDLOperation):
     name: str = "test.opt_region_op"
 
-    reg: OptRegion
+    reg = OptRegionDef()
 
 
 def test_opt_region_builder():
@@ -397,7 +393,7 @@ def test_opt_region_builder_two_args():
 class OptSBRegionOp(IRDLOperation):
     name: str = "test.sbregion_op"
 
-    region: OptSingleBlockRegion
+    region = OptRegionDef(single_block=True)
 
 
 def test_opt_sbregion_one_block():
@@ -414,26 +410,12 @@ def test_opt_sbregion_one_block():
 class VarRegionOp(IRDLOperation):
     name: str = "test.var_operand_op"
 
-    regs: VarRegion
+    regs = VarRegionDef()
 
 
 def test_var_region_builder():
-    op = VarRegionOp.build(regions=[[Region(), [Block(), Block()]]])
-    op.verify()
-    assert len(op.regs[0].blocks) == 0  # type: ignore
-    assert len(op.regs[1].blocks) == 2  # type: ignore
-
-
-@irdl_op_definition
-class VarSBRegionOp(IRDLOperation):
-    name: str = "test.sbregion_op"
-
-    regs: VarSingleBlockRegion
-
-
-def test_var_sbregion_one_block():
-    op1 = VarSBRegionOp.build(regions=[[[Block()]]])
-    op2 = VarSBRegionOp.build(regions=[[Region(), [Block(), Block()]]])
+    op1 = VarRegionOp.build(regions=[[[Block()]]])
+    op2 = VarRegionOp.build(regions=[[Region(), [Block(), Block()]]])
     op1.verify()
     op2.verify()
     assert len(op1.regs) == 1  # type: ignore
@@ -443,11 +425,24 @@ def test_var_sbregion_one_block():
 
 
 @irdl_op_definition
+class VarSBRegionOp(IRDLOperation):
+    name: str = "test.sbregion_op"
+
+    regs = VarRegionDef(single_block=True)
+
+
+def test_var_sbregion_one_block():
+    op = VarSBRegionOp.build(regions=[[[Block()], Region([Block()])]])
+    op.verify()
+    assert len(op.regs) == 2  # type: ignore
+
+
+@irdl_op_definition
 class TwoVarRegionOp(IRDLOperation):
     name: str = "test.two_var_region_op"
 
-    res1: Annotated[VarRegion, StringAttr]
-    res2: Annotated[VarRegion, StringAttr]
+    res1 = VarRegionDef()
+    res2 = VarRegionDef()
     irdl_options = [AttrSizedRegionSegments()]
 
 

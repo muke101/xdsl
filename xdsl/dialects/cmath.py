@@ -11,9 +11,10 @@ from xdsl.ir import (
     SSAValue,
 )
 from xdsl.irdl import (
+    OperandDef,
+    ResultDef,
     irdl_op_definition,
     irdl_attr_definition,
-    Operand,
     ParameterDef,
     ParamAttrConstraint,
     AnyOf,
@@ -32,10 +33,10 @@ class ComplexType(ParametrizedAttribute, TypeAttribute):
 class Norm(IRDLOperation):
     name: str = "cmath.norm"
 
-    op: Annotated[
-        Operand, ParamAttrConstraint(ComplexType, [AnyOf([Float32Type, Float64Type])])
-    ]
-    res: Annotated[OpResult, AnyOf([Float32Type, Float64Type])]
+    op = OperandDef(
+        ParamAttrConstraint(ComplexType, [AnyOf([Float32Type, Float64Type])])
+    )
+    res = ResultDef(AnyOf([Float32Type, Float64Type]))
 
     # TODO replace with trait
     def verify_(self) -> None:
@@ -49,15 +50,15 @@ class Norm(IRDLOperation):
 class Mul(IRDLOperation):
     name: str = "cmath.mul"
 
-    lhs: Annotated[
-        Operand, ParamAttrConstraint(ComplexType, [AnyOf([Float32Type, Float64Type])])
-    ]
-    rhs: Annotated[
-        Operand, ParamAttrConstraint(ComplexType, [AnyOf([Float32Type, Float64Type])])
-    ]
-    result: Annotated[
-        OpResult, ParamAttrConstraint(ComplexType, [AnyOf([Float32Type, Float64Type])])
-    ]
+    lhs = OperandDef(
+        ParamAttrConstraint(ComplexType, [AnyOf([Float32Type, Float64Type])])
+    )
+    rhs = OperandDef(
+        ParamAttrConstraint(ComplexType, [AnyOf([Float32Type, Float64Type])])
+    )
+    result = ResultDef(
+        ParamAttrConstraint(ComplexType, [AnyOf([Float32Type, Float64Type])])
+    )
 
     # TODO replace with trait
     def verify_(self) -> None:
