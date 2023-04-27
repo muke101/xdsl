@@ -33,17 +33,17 @@ from xdsl.ir import (
 
 from xdsl.irdl import (
     AllOf,
-    OpAttr,
-    VarOpResult,
-    VarOperand,
-    VarRegion,
+    AttributeDef,
+    RegionDef,
+    VarOperandDef,
+    VarRegionDef,
+    VarResultDef,
     irdl_attr_definition,
     attr_constr_coercion,
     irdl_data_definition,
     irdl_to_attr_constraint,
     irdl_op_definition,
     ParameterDef,
-    SingleBlockRegion,
     Generic,
     GenericData,
     AttrConstraint,
@@ -1105,8 +1105,8 @@ class StridedLayoutAttr(ParametrizedAttribute):
 class UnrealizedConversionCastOp(IRDLOperation):
     name: str = "builtin.unrealized_conversion_cast"
 
-    inputs: VarOperand
-    outputs: VarOpResult
+    inputs = VarOperandDef()
+    outputs = VarResultDef()
 
     @staticmethod
     def get(inputs: Sequence[SSAValue | Operation], result_type: Sequence[Attribute]):
@@ -1126,10 +1126,10 @@ class UnregisteredOp(IRDLOperation, ABC):
 
     name: str = "builtin.unregistered"
 
-    op_name__: OpAttr[StringAttr]
-    args: VarOperand
-    res: VarOpResult
-    regs: VarRegion
+    op_name__ = AttributeDef(StringAttr)
+    args = VarOperandDef()
+    res = VarResultDef()
+    regs = VarRegionDef()
 
     @property
     def op_name(self) -> StringAttr:
@@ -1233,7 +1233,7 @@ class UnregisteredAttr(ParametrizedAttribute, ABC):
 class ModuleOp(IRDLOperation):
     name: str = "builtin.module"
 
-    body: SingleBlockRegion
+    body = RegionDef(single_block=True)
 
     def __init__(self, ops: List[Operation] | Region):
         if isinstance(ops, Region):

@@ -25,6 +25,8 @@ from types import UnionType, GenericAlias, FunctionType
 
 from xdsl.ir import (
     Attribute,
+    AttributeCovT,
+    AttributeInvT,
     Block,
     Data,
     OpResult,
@@ -474,14 +476,15 @@ class AttrSizedRegionSegments(IRDLOption):
 
 
 @dataclass
-class OperandOrResultDef(ABC):
-    """An operand or a result definition. Should not be used directly."""
-
-    ...
+class IRDLDef(ABC):
+    """
+    An operand, result, region, or attribute definition.
+    Should not be used directly.
+    """
 
 
 @dataclass
-class VariadicDef(OperandOrResultDef):
+class VariadicDef(IRDLDef):
     """A variadic operand or result definition. Should not be used directly."""
 
     ...
@@ -495,128 +498,184 @@ class OptionalDef(VariadicDef):
 
 
 @dataclass(init=False)
-class OperandDef(OperandOrResultDef):
-    """An IRDL operand definition."""
+class OperandDefBase(IRDLDef):
+    """An IRDL operand (variadic or not) definition."""
 
     constr: AttrConstraint
     """The operand constraint."""
 
-    def __init__(self, typ: Attribute | type[Attribute] | AttrConstraint):
-        self.constr = attr_constr_coercion(typ)
-
-
-Operand: TypeAlias = SSAValue
+    def __init__(self, typ: Any):
+        self.constr = irdl_to_attr_constraint(typ)
 
 
 @dataclass(init=False)
-class VarOperandDef(OperandDef, VariadicDef):
+class OperandDef(OperandDefBase):
+    """An IRDL operand definition."""
+
+    def __get__(self, object: Any, objtype: type[Any] | None = None) -> SSAValue:
+        assert False, "OperandDef should not be used directly"
+
+    def __set__(self, object: Any, value: SSAValue):
+        assert False, "OperandDef should not be used directly"
+
+
+@dataclass(init=False)
+class VarOperandDef(OperandDefBase, VariadicDef):
     """An IRDL variadic operand definition."""
 
+    def __get__(self, object: Any, objtype: type[Any] | None = None) -> list[SSAValue]:
+        assert False, "VarOperandDef should not be used directly"
 
-VarOperand: TypeAlias = list[SSAValue]
+    def __set__(self, object: Any, value: Sequence[SSAValue]):
+        assert False, "VarOperandDef should not be used directly"
 
 
 @dataclass(init=False)
-class OptOperandDef(VarOperandDef, OptionalDef):
+class OptOperandDef(OperandDefBase, OptionalDef):
     """An IRDL optional operand definition."""
 
+    def __get__(self, object: Any, objtype: type[Any] | None = None) -> SSAValue | None:
+        assert False, "OptOperandDef should not be used directly"
 
-OptOperand: TypeAlias = SSAValue | None
+    def __set__(self, object: Any, value: SSAValue | None):
+        assert False, "OptOperandDef should not be used directly"
 
 
 @dataclass(init=False)
-class ResultDef(OperandOrResultDef):
-    """An IRDL result definition."""
+class ResultDefBase(IRDLDef):
+    """An IRDL result (variadic or not) definition."""
 
     constr: AttrConstraint
     """The result constraint."""
 
-    def __init__(self, typ: Attribute | type[Attribute] | AttrConstraint):
-        self.constr = attr_constr_coercion(typ)
+    def __init__(self, typ: Any):
+        self.constr = irdl_to_attr_constraint(typ)
 
 
 @dataclass(init=False)
-class VarResultDef(ResultDef, VariadicDef):
+class ResultDef(ResultDefBase):
+    """An IRDL result definition."""
+
+    def __get__(self, object: Any, objtype: type[Any] | None = None) -> OpResult:
+        assert False, "ResultDef should not be used directly"
+
+    def __set__(self, object: Any, value: Attribute):
+        assert False, "ResultDef should not be used directly"
+
+
+@dataclass(init=False)
+class VarResultDef(ResultDefBase, VariadicDef):
     """An IRDL variadic result definition."""
 
+    def __get__(self, object: Any, objtype: type[Any] | None = None) -> list[OpResult]:
+        assert False, "ResultDef should not be used directly"
 
-VarOpResult: TypeAlias = list[OpResult]
+    def __set__(self, object: Any, value: Sequence[Attribute]):
+        assert False, "ResultDef should not be used directly"
 
 
 @dataclass(init=False)
-class OptResultDef(VarResultDef, OptionalDef):
+class OptResultDef(ResultDefBase, OptionalDef):
     """An IRDL optional result definition."""
 
+    def __get__(self, object: Any, objtype: type[Any] | None = None) -> OpResult | None:
+        assert False, "ResultDef should not be used directly"
 
-OptOpResult: TypeAlias = OpResult | None
+    def __set__(self, object: Any, value: Attribute | None):
+        assert False, "ResultDef should not be used directly"
 
 
-@dataclass(init=True)
-class RegionDef(Region):
+@dataclass
+class RegionDefBase(IRDLDef):
     """
     An IRDL region definition.
     """
 
+    single_block: bool = False
+
 
 @dataclass
-class VarRegionDef(RegionDef, VariadicDef):
+class RegionDef(RegionDefBase):
+    """
+    An IRDL region definition.
+    """
+
+    def __get__(self, object: Any, objtype: type[Any] | None = None) -> Region:
+        assert False, "RegionDef should not be used directly"
+
+    def __set__(self, object: Any, value: Region):
+        assert False, "RegionDef should not be used directly"
+
+
+@dataclass
+class VarRegionDef(RegionDefBase, VariadicDef):
     """An IRDL variadic region definition."""
 
+    def __get__(self, object: Any, objtype: type[Any] | None = None) -> list[Region]:
+        assert False, "VarRegionDef should not be used directly"
+
+    def __set__(self, object: Any, value: Sequence[Region]):
+        assert False, "VarRegionDef should not be used directly"
+
 
 @dataclass
-class OptRegionDef(RegionDef, OptionalDef):
+class OptRegionDef(RegionDefBase, OptionalDef):
     """An IRDL optional region definition."""
 
+    def __get__(self, object: Any, objtype: type[Any] | None = None) -> Region | None:
+        assert False, "OptRegionDef should not be used directly"
 
-VarRegion: TypeAlias = list[Region]
-OptRegion: TypeAlias = Region | None
-
-
-@dataclass
-class SingleBlockRegionDef(RegionDef):
-    """An IRDL region definition that expects exactly one block."""
-
-
-class VarSingleBlockRegionDef(RegionDef, VariadicDef):
-    """An IRDL variadic region definition that expects exactly one block."""
-
-
-class OptSingleBlockRegionDef(RegionDef, OptionalDef):
-    """An IRDL optional region definition that expects exactly one block."""
-
-
-SingleBlockRegion: TypeAlias = Annotated[Region, IRDLAnnotations.SingleBlockRegionAnnot]
-VarSingleBlockRegion: TypeAlias = Annotated[
-    list[Region], IRDLAnnotations.SingleBlockRegionAnnot
-]
-OptSingleBlockRegion: TypeAlias = Annotated[
-    Region | None, IRDLAnnotations.SingleBlockRegionAnnot
-]
+    def __set__(self, object: Any, value: Region | None):
+        assert False, "OptRegionDef should not be used directly"
 
 
 @dataclass(init=False)
-class AttributeDef:
+class AttributeDefBase(Generic[AttributeCovT]):
+    """An IRDL attribute definition. Should not be used directly."""
+
+    constraint: AttrConstraint
+    """The attribute constraint represented as a type."""
+
+    def __init__(self: AttributeDefBase[AttributeCovT], type: type[AttributeCovT]):
+        self.constraint = irdl_to_attr_constraint(type)
+
+
+class AOUE(Attribute):
+    pass
+
+
+class AOUE2(Attribute):
+    pass
+
+
+@dataclass(init=False)
+class AttributeDef(AttributeDefBase[AttributeInvT]):
     """An IRDL attribute definition."""
 
-    constr: AttrConstraint
-    """The attribute constraint."""
+    def __get__(
+        self: AttributeDef[AttributeInvT], object: Any, objtype: type[Any] | None = None
+    ) -> AttributeInvT:
+        assert False, "AttributeDef should not be used directly"
 
-    def __init__(self, typ: Attribute | type[Attribute] | AttrConstraint):
-        self.constr = attr_constr_coercion(typ)
+    def __set__(self: AttributeDef[AttributeInvT], object: Any, value: AttributeInvT):
+        assert False, "AttributeDef should not be used directly"
 
 
 @dataclass(init=False)
-class OptAttributeDef(AttributeDef):
+class OptAttributeDef(AttributeDefBase[AttributeInvT]):
     """An IRDL attribute definition for an optional attribute."""
 
-    def __init__(self, typ: Attribute | type[Attribute] | AttrConstraint):
-        super().__init__(typ)
+    def __get__(
+        self: OptAttributeDef[AttributeInvT],
+        object: Any,
+        objtype: type[Any] | None = None,
+    ) -> AttributeInvT | None:
+        assert False, "OptAttributeDef should not be used directly"
 
-
-_OpAttrT = TypeVar("_OpAttrT", bound=Attribute)
-
-OpAttr: TypeAlias = Annotated[_OpAttrT, IRDLAnnotations.AttributeDefAnnot]
-OptOpAttr: TypeAlias = Annotated[_OpAttrT | None, IRDLAnnotations.OptAttributeDefAnnot]
+    def __set__(
+        self: OptAttributeDef[AttributeInvT], object: Any, value: AttributeInvT | None
+    ):
+        assert False, "OptAttributeDef should not be used directly"
 
 
 operation_fields = get_type_hints(Operation).keys()
@@ -627,10 +686,10 @@ class OpDef:
     """The internal IRDL definition of an operation."""
 
     name: str = field(kw_only=False)
-    operands: list[tuple[str, OperandDef]] = field(default_factory=list)
-    results: list[tuple[str, ResultDef]] = field(default_factory=list)
-    attributes: dict[str, AttributeDef] = field(default_factory=dict)
-    regions: list[tuple[str, RegionDef]] = field(default_factory=list)
+    operands: list[tuple[str, OperandDefBase]] = field(default_factory=list)
+    results: list[tuple[str, ResultDefBase]] = field(default_factory=list)
+    attributes: dict[str, AttributeDefBase[Any]] = field(default_factory=dict)
+    regions: list[tuple[str, RegionDefBase]] = field(default_factory=list)
     options: list[IRDLOption] = field(default_factory=list)
     traits: frozenset[OpTrait] = field(default_factory=frozenset)
 
@@ -643,8 +702,6 @@ class OpDef:
         for parent_cls in pyrdl_def.mro()[::-1]:
             clsdict = {**clsdict, **parent_cls.__dict__}
 
-        type_hints = get_type_hints(pyrdl_def, include_extras=True)
-
         # Get all fields of the Operation class, including their parents classes
         opdict: dict[str, Any] = dict()
         for parent_cls in Operation.mro()[::-1]:
@@ -654,11 +711,9 @@ class OpDef:
             raise PyRDLOpDefinitionError(
                 f"{field_name} is neither a function, or an "
                 "operand, result, region, or attribute definition. "
-                "Operands should be defined with type hints of "
-                "Annotated[Operand, <Constraint>], results with "
-                "Annotated[OpResult, <Constraint>], regions with "
-                "Region, and attributes with "
-                "OpAttr[<Constraint>]"
+                "Operands should be defined with OperandDef, "
+                "results with ResultDef, regions with RegionDef, "
+                "and attributes with AttributeDef"
             )
 
         # Check that all fields of the operation definition are either already
@@ -672,6 +727,8 @@ class OpDef:
                 value, (FunctionType, PropertyType, classmethod, staticmethod)
             ):
                 continue
+            if isinstance(value, IRDLDef):
+                continue
             raise wrong_field_exception(field_name)
 
         if "name" not in clsdict:
@@ -682,100 +739,18 @@ class OpDef:
             )
 
         op_def = OpDef(clsdict["name"])
-        for field_name, field_type in type_hints.items():
-            if field_name in operation_fields:
-                continue
+        for field_name, field_value in clsdict.items():
+            if isinstance(field_value, OperandDefBase):
+                op_def.operands.append((field_name, field_value))
 
-            # If the field type is an Annotated, separate the origin
-            # from the arguments.
-            # If the field type is not an Annotated, then the arguments should
-            # just be the field itself.
-            origin: Any | None = cast(Any | None, get_origin(field_type))
-            args: tuple[Any, ...]
-            if origin is None:
-                args = (field_type,)
-            elif origin == Annotated:
-                args = get_args(field_type)
-            else:
-                args = (field_type,)
-            args = cast(tuple[Any, ...], args)
+            if isinstance(field_value, ResultDefBase):
+                op_def.results.append((field_name, field_value))
 
-            # Get attribute constraints from a list of pyrdl constraints
-            def get_constraint(pyrdl_constrs: tuple[Any, ...]) -> AttrConstraint:
-                constraints = [
-                    irdl_to_attr_constraint(pyrdl_constr)
-                    for pyrdl_constr in pyrdl_constrs
-                    if not isinstance(pyrdl_constr, IRDLAnnotations)
-                ]
-                if len(constraints) == 0:
-                    return AnyAttr()
-                if len(constraints) == 1:
-                    return constraints[0]
-                return AllOf(constraints)
+            if isinstance(field_value, AttributeDefBase):
+                op_def.attributes[field_name] = field_value
 
-            # Get the operand, result, attribute, or region definition, from
-            # the pyrdl description.
-
-            # For operands and results, constrants are encoded as arguments of
-            # an Annotated, where the origin is the definition type (operand,
-            # optional result, etc...).
-            # For Attributes, constraints are encoded in the origin and the
-            # args of the Annotated, and the definition type (required or
-            # optional) is given in the Annotated arguments.
-            # For Regions, SingleBlock regions are given as Annotated arguments,
-            # and otherwise the Annotated origin (if it is an Annotated) gives
-            # the Region definition (required, optional, or variadic).
-
-            # Operand annotation
-            if args[0] == Operand:
-                constraint = get_constraint(args[1:])
-                op_def.operands.append((field_name, OperandDef(constraint)))
-            elif args[0] == list[Operand]:
-                constraint = get_constraint(args[1:])
-                op_def.operands.append((field_name, VarOperandDef(constraint)))
-            elif args[0] == (Operand | None):
-                constraint = get_constraint(args[1:])
-                op_def.operands.append((field_name, OptOperandDef(constraint)))
-
-            # Result annotation
-            elif args[0] == OpResult:
-                constraint = get_constraint(args[1:])
-                op_def.results.append((field_name, ResultDef(constraint)))
-            elif args[0] == list[OpResult]:
-                constraint = get_constraint(args[1:])
-                op_def.results.append((field_name, VarResultDef(constraint)))
-            elif args[0] == (OpResult | None):
-                constraint = get_constraint(args[1:])
-                op_def.results.append((field_name, OptResultDef(constraint)))
-
-            # Attribute annotation
-            elif IRDLAnnotations.AttributeDefAnnot in args:
-                constraint = get_constraint(args)
-                op_def.attributes[field_name] = AttributeDef(constraint)
-            elif IRDLAnnotations.OptAttributeDefAnnot in args:
-                assert get_origin(args[0]) in [UnionType, Union]
-                args = (reduce(lambda x, y: x | y, get_args(args[0])[:-1]), *args[1:])
-                constraint = get_constraint(args)
-                op_def.attributes[field_name] = OptAttributeDef(constraint)
-
-            # Region annotation
-            elif args[0] == Region:
-                if len(args) > 1 and args[1] == IRDLAnnotations.SingleBlockRegionAnnot:
-                    op_def.regions.append((field_name, SingleBlockRegionDef()))
-                else:
-                    op_def.regions.append((field_name, RegionDef()))
-            elif args[0] == VarRegion:
-                if len(args) > 1 and args[1] == IRDLAnnotations.SingleBlockRegionAnnot:
-                    op_def.regions.append((field_name, VarSingleBlockRegionDef()))
-                else:
-                    op_def.regions.append((field_name, VarRegionDef()))
-            elif args[0] == OptRegion:
-                if len(args) > 1 and args[1] == IRDLAnnotations.SingleBlockRegionAnnot:
-                    op_def.regions.append((field_name, OptSingleBlockRegionDef()))
-                else:
-                    op_def.regions.append((field_name, OptRegionDef()))
-            else:
-                raise wrong_field_exception(field_name)
+            if isinstance(field_value, RegionDefBase):
+                op_def.regions.append((field_name, field_value))
 
         op_def.options = clsdict.get("irdl_options", [])
         traits = clsdict.get("traits", frozenset())
@@ -808,7 +783,7 @@ class OpDef:
                 if isinstance(attr_def, OptAttributeDef):
                     continue
                 raise VerifyException(f"attribute {attr_name} expected")
-            attr_def.constr.verify(op.attributes[attr_name])
+            attr_def.constraint.verify(op.attributes[attr_name])
 
         # Verify traits.
         for trait in self.traits:
@@ -840,9 +815,9 @@ def get_construct_name(construct: VarIRConstruct) -> str:
 def get_construct_defs(
     op_def: OpDef, construct: VarIRConstruct
 ) -> (
-    list[tuple[str, OperandDef]]
-    | list[tuple[str, ResultDef]]
-    | list[tuple[str, RegionDef]]
+    list[tuple[str, OperandDefBase]]
+    | list[tuple[str, ResultDefBase]]
+    | list[tuple[str, RegionDefBase]]
 ):
     """Get the definitions of this type in an operation definition."""
     if construct == VarIRConstruct.OPERAND:
@@ -886,7 +861,7 @@ def get_attr_size_option(
 
 def get_variadic_sizes_from_attr(
     op: Operation,
-    defs: Sequence[tuple[str, OperandDef | ResultDef | RegionDef]],
+    defs: Sequence[tuple[str, OperandDefBase | ResultDefBase | RegionDefBase]],
     construct: VarIRConstruct,
     size_attribute_name: str,
 ) -> list[int]:
@@ -1044,9 +1019,10 @@ def irdl_op_verify_arg_list(
                 construct == VarIRConstruct.OPERAND
                 or construct == VarIRConstruct.RESULT
             ):
-                arg_def.constr.verify(arg.typ)
+                arg_def.constraint.verify(arg.typ)
             elif construct == VarIRConstruct.REGION:
-                if isinstance(arg_def, SingleBlockRegionDef) and len(arg.blocks) != 1:
+                assert isinstance(arg_def, RegionDefBase)
+                if arg_def.single_block and len(arg.blocks) != 1:
                     raise VerifyException(
                         "expected a single block, but got " f"{len(arg.blocks)} blocks"
                     )
@@ -1074,7 +1050,7 @@ def irdl_op_verify_arg_list(
 def irdl_build_arg_list(
     construct: Literal[VarIRConstruct.OPERAND],
     args: Sequence[SSAValue | Sequence[SSAValue] | None],
-    arg_defs: Sequence[tuple[str, OperandDef]],
+    arg_defs: Sequence[tuple[str, OperandDefBase]],
     error_prefix: str,
 ) -> tuple[list[SSAValue], list[int]]:
     ...
@@ -1084,7 +1060,7 @@ def irdl_build_arg_list(
 def irdl_build_arg_list(
     construct: Literal[VarIRConstruct.RESULT],
     args: Sequence[Attribute | Sequence[Attribute] | None],
-    arg_defs: Sequence[tuple[str, ResultDef]],
+    arg_defs: Sequence[tuple[str, ResultDefBase]],
     error_prefix: str,
 ) -> tuple[list[Attribute], list[int]]:
     ...
@@ -1094,7 +1070,7 @@ def irdl_build_arg_list(
 def irdl_build_arg_list(
     construct: Literal[VarIRConstruct.REGION],
     args: Sequence[Region | Sequence[Region] | None],
-    arg_defs: Sequence[tuple[str, RegionDef]],
+    arg_defs: Sequence[tuple[str, RegionDefBase]],
     error_prefix: str,
 ) -> tuple[list[Region], list[int]]:
     ...
@@ -1620,3 +1596,10 @@ def irdl_attr_definition(cls: type[_AttrT]) -> type[_AttrT]:
         f"Class {cls.__name__} should either be a subclass of 'Data' or "
         "'ParametrizedAttribute'"
     )
+
+
+@irdl_op_definition
+class OpOp(IRDLOperation):
+    name = "boop"
+
+    operand = OperandDef(Attribute)

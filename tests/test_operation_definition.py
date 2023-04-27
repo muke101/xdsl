@@ -9,14 +9,11 @@ from xdsl.irdl import (
     AttrSizedOperandSegments,
     AttrSizedRegionSegments,
     AttrSizedResultSegments,
-    Operand,
-    OptOpAttr,
-    OptOpResult,
-    OptOperand,
-    OptRegion,
-    VarOpResult,
-    VarOperand,
-    VarRegion,
+    OptAttributeDef,
+    OptOperandDef,
+    OptRegionDef,
+    VarOperandDef,
+    VarRegionDef,
     irdl_op_definition,
     OperandDef,
     ResultDef,
@@ -24,7 +21,6 @@ from xdsl.irdl import (
     AnyAttr,
     OpDef,
     RegionDef,
-    OpAttr,
     IRDLOperation,
 )
 from xdsl.utils.exceptions import PyRDLOpDefinitionError, VerifyException
@@ -38,9 +34,9 @@ from xdsl.utils.exceptions import PyRDLOpDefinitionError, VerifyException
 class OpDefTestOp(IRDLOperation):
     name = "test.op_def_test"
 
-    operand: Operand
-    result: OpResult
-    attr: OpAttr[Attribute]
+    operand = OperandDef()
+    result = ResultDef()
+    attr = AttributeDef(Attribute)
     region: Region
 
     # Check that we can define methods in operation definitions
@@ -96,7 +92,7 @@ def test_invalid_field():
 @irdl_op_definition
 class AttrOp(IRDLOperation):
     name: str = "test.two_var_result_op"
-    attr: OpAttr[StringAttr]
+    attr = AttributeDef(StringAttr)
 
 
 def test_attr_verify():
@@ -117,9 +113,9 @@ class RegionOp(IRDLOperation):
 
     irdl_options = [AttrSizedRegionSegments()]
 
-    region: Region
-    opt_region: OptRegion
-    var_region: VarRegion
+    region = RegionDef()
+    opt_region = OptRegionDef()
+    var_region = VarRegionDef()
 
 
 def test_region_accessors():
@@ -149,9 +145,9 @@ class OperandOp(IRDLOperation):
 
     irdl_options = [AttrSizedOperandSegments()]
 
-    operand: Operand
-    opt_operand: OptOperand
-    var_operand: VarOperand
+    operand = OperandDef()
+    opt_operand = OptOperandDef()
+    var_operand = VarOperandDef()
 
 
 def test_operand_accessors():
@@ -180,8 +176,8 @@ class OpResultOp(IRDLOperation):
     irdl_options = [AttrSizedResultSegments()]
 
     result: OpResult
-    opt_result: OptOpResult
-    var_result: VarOpResult
+    opt_result = OptOperandDef()
+    var_result = VarOperandDef()
 
 
 def test_opresult_accessors():
@@ -202,8 +198,8 @@ def test_opresult_accessors():
 class AttributeOp(IRDLOperation):
     name = "test.attribute_op"
 
-    attr: OpAttr[StringAttr]
-    opt_attr: OptOpAttr[StringAttr]
+    attr = AttributeDef(StringAttr)
+    opt_attr = OptAttributeDef(StringAttr)
 
 
 def test_attribute_accessors():

@@ -34,16 +34,17 @@ from xdsl.ir import (
     OpResult,
 )
 from xdsl.irdl import (
+    AttributeDef,
+    AttributeDefBase,
+    OperandDef,
+    VarOperandDef,
     irdl_attr_definition,
     irdl_op_definition,
     ParameterDef,
     Generic,
     Attribute,
     AnyAttr,
-    Operand,
-    VarOperand,
     AttrSizedOperandSegments,
-    OpAttr,
     IRDLOperation,
 )
 from xdsl.utils.exceptions import VerifyException
@@ -159,8 +160,8 @@ AnyUnrankedMemrefType: TypeAlias = UnrankedMemrefType[Attribute]
 @irdl_op_definition
 class Load(IRDLOperation):
     name = "memref.load"
-    memref: Annotated[Operand, MemRefType[Attribute]]
-    indices: Annotated[VarOperand, IndexType]
+    memref = OperandDef(MemRefType[Attribute])
+    indices = VarOperandDef(IndexType)
     res: Annotated[OpResult, AnyAttr()]
 
     # TODO varargs for indexing, which must match the memref dimensions
@@ -190,9 +191,9 @@ class Load(IRDLOperation):
 @irdl_op_definition
 class Store(IRDLOperation):
     name = "memref.store"
-    value: Annotated[Operand, AnyAttr()]
-    memref: Annotated[Operand, MemRefType[Attribute]]
-    indices: Annotated[VarOperand, IndexType]
+    value = OperandDef(AnyAttr())
+    memref = OperandDef(MemRefType[Attribute])
+    indices = VarOperandDef(IndexType)
 
     def verify_(self):
         if not isinstance(self.memref.typ, MemRefType):
@@ -219,13 +220,13 @@ class Store(IRDLOperation):
 class Alloc(IRDLOperation):
     name = "memref.alloc"
 
-    dynamic_sizes: Annotated[VarOperand, IndexType]
-    symbol_operands: Annotated[VarOperand, IndexType]
+    dynamic_sizes = VarOperandDef(IndexType)
+    symbol_operands = VarOperandDef(IndexType)
 
     memref: Annotated[OpResult, MemRefType[Attribute]]
 
     # TODO how to constraint the IntegerAttr type?
-    alignment: OpAttr[AnyIntegerAttr]
+    alignment = AttributeDef(AnyIntegerAttr)
 
     irdl_options = [AttrSizedOperandSegments()]
 
@@ -248,13 +249,13 @@ class Alloc(IRDLOperation):
 class Alloca(IRDLOperation):
     name = "memref.alloca"
 
-    dynamic_sizes: Annotated[VarOperand, IndexType]
-    symbol_operands: Annotated[VarOperand, IndexType]
+    dynamic_sizes = VarOperandDef(IndexType)
+    symbol_operands = VarOperandDef(IndexType)
 
     memref: Annotated[OpResult, MemRefType[Attribute]]
 
     # TODO how to constraint the IntegerAttr type?
-    alignment: OpAttr[AnyIntegerAttr]
+    alignment = AttributeDef(AnyIntegerAttr)
 
     irdl_options = [AttrSizedOperandSegments()]
 
@@ -281,7 +282,8 @@ class Alloca(IRDLOperation):
 @irdl_op_definition
 class Dealloc(IRDLOperation):
     name = "memref.dealloc"
-    memref: Annotated[Operand, MemRefType[Attribute] | UnrankedMemrefType[Attribute]]
+    memref = OperandDef(MemRefType[Attribute] | UnrankedMemrefType[Attribute])
+    teest = AttributeDefBase(MemRefType[Attribute] | UnrankedMemrefType[Attribute])
 
     @staticmethod
     def get(operand: Operation | SSAValue) -> Dealloc:
@@ -291,7 +293,7 @@ class Dealloc(IRDLOperation):
 @irdl_op_definition
 class Dealloca(IRDLOperation):
     name = "memref.dealloca"
-    memref: Annotated[Operand, MemRefType[Attribute]]
+    memref = OperandDef(MemRefType[Attribute])
 
     @staticmethod
     def get(operand: Operation | SSAValue) -> Dealloca:
@@ -324,10 +326,10 @@ class GetGlobal(IRDLOperation):
 class Global(IRDLOperation):
     name = "memref.global"
 
-    sym_name: OpAttr[StringAttr]
-    sym_visibility: OpAttr[StringAttr]
-    type: OpAttr[Attribute]
-    initial_value: OpAttr[Attribute]
+    sym_name = AttributeDef(StringAttr)
+    sym_visibility = AttributeDef(StringAttr)
+    type = AttributeDef(Attribute)
+    initial_value = AttributeDef(Attribute)
 
     def verify_(self) -> None:
         if not isinstance(self.type, MemRefType):
@@ -360,8 +362,8 @@ class Global(IRDLOperation):
 class Dim(IRDLOperation):
     name = "memref.dim"
 
-    source: Annotated[Operand, MemRefType[Attribute] | UnrankedMemrefType[Attribute]]
-    index: Annotated[Operand, IndexType]
+    source = OperandDef(MemRefType[Attribute] | UnrankedMemrefType[Attribute])
+    index = OperandDef(IndexType)
 
     result: Annotated[OpResult, IndexType]
 
@@ -376,7 +378,7 @@ class Dim(IRDLOperation):
 class Rank(IRDLOperation):
     name = "memref.rank"
 
-    source: Annotated[Operand, MemRefType[Attribute]]
+    source = OperandDef(MemRefType[Attribute])
 
     rank: Annotated[OpResult, IndexType]
 
@@ -389,7 +391,7 @@ class Rank(IRDLOperation):
 class ExtractAlignedPointerAsIndexOp(IRDLOperation):
     name = "memref.extract_aligned_pointer_as_index"
 
-    source: Annotated[Operand, MemRefType]
+    source = OperandDef(MemRefType)
 
     aligned_pointer: Annotated[OpResult, IndexType]
 
@@ -404,13 +406,13 @@ class ExtractAlignedPointerAsIndexOp(IRDLOperation):
 class Subview(IRDLOperation):
     name = "memref.subview"
 
-    source: Annotated[Operand, MemRefType]
-    offsets: Annotated[VarOperand, IndexType]
-    sizes: Annotated[VarOperand, IndexType]
-    strides: Annotated[VarOperand, IndexType]
-    static_offsets: OpAttr[DenseArrayBase]
-    static_sizes: OpAttr[DenseArrayBase]
-    static_strides: OpAttr[DenseArrayBase]
+    source = OperandDef(MemRefType)
+    offsets = VarOperandDef(IndexType)
+    sizes = VarOperandDef(IndexType)
+    strides = VarOperandDef(IndexType)
+    static_offsets = AttributeDef(DenseArrayBase)
+    static_sizes = AttributeDef(DenseArrayBase)
+    static_strides = AttributeDef(DenseArrayBase)
     result: Annotated[OpResult, MemRefType]
 
     irdl_options = [AttrSizedOperandSegments()]
@@ -460,7 +462,7 @@ class Subview(IRDLOperation):
 class Cast(IRDLOperation):
     name = "memref.cast"
 
-    source: Annotated[Operand, MemRefType | UnrankedMemrefType]
+    source = OperandDef(MemRefType | UnrankedMemrefType)
     dest: Annotated[OpResult, MemRefType | UnrankedMemrefType]
 
     @staticmethod
