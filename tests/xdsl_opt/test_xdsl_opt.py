@@ -22,6 +22,7 @@ def test_opt():
         "frontend-desymrefy",
         "dce",
         "riscv-allocate-registers",
+        "lower-riscv-ssa",
     ]
 
 
